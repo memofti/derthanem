@@ -550,54 +550,48 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
   const isClosed = dert.closed && !dert.solved;
 
   return (
-    <div className={`dert-card${isNew?" dert-new":""}`} style={{ background:cardBg, border:`2px solid ${cardBdr}`, marginBottom:16,
-      boxShadow: dert.solved?"6px 6px 0 #111": isClosed?"3px 3px 0 #bbb":"none",
+    <div className={`dert-card${isNew?" dert-new":""}`} style={{
+      background: dert.solved ? "#fffbeb" : cardBg,
+      border: dert.solved ? "2px solid #f39c12" : `2px solid ${cardBdr}`,
+      marginBottom:16,
+      boxShadow: dert.solved ? "6px 6px 0 #f39c12" : isClosed ? "3px 3px 0 #bbb" : "none",
       opacity: isClosed ? .72 : 1,
       transition:"box-shadow .3s, transform .18s",
       position:"relative", overflow:"hidden" }}>
 
-      {/* Dermana Ulaştı bandı — üst kısım */}
+      {/* Dermana Ulaştı — üst şerit */}
       {dert.solved && (
-        <div style={{ background:"#111", color:"#fff", padding:"8px 20px",
-          display:"flex", alignItems:"center", gap:10,
-          borderBottom:"2px solid #111" }}>
-          <span style={{ fontSize:16 }}>⭐</span>
-          <div style={{ fontSize:10, fontWeight:900, letterSpacing:3,
+        <div style={{ background:"#f39c12", color:"#fff", padding:"10px 20px",
+          display:"flex", alignItems:"center", justifyContent:"center", gap:10,
+          borderBottom:"2px solid #e67e22" }}>
+          <span style={{ fontSize:18 }}>⭐</span>
+          <div style={{ fontSize:11, fontWeight:900, letterSpacing:3,
             textTransform:"uppercase" }}>Bu Dert Dermana Ulaştı!</div>
-          <span style={{ fontSize:16 }}>⭐</span>
+          <span style={{ fontSize:18 }}>⭐</span>
         </div>
       )}
 
-      {/* Soğuk damga — çözülen dertler */}
+      {/* Soğuk damga — sadece başlık alanında, sabit konumda */}
       {dert.solved && (
         <div style={{
-          position:"absolute", top:0, left:0, right:0, bottom:0, zIndex:10,
-          display:"flex", alignItems:"center", justifyContent:"center",
+          position:"absolute", top:42, right:16, zIndex:10,
           pointerEvents:"none", userSelect:"none",
         }}>
-          <div className="stamp" style={{
-            border:"5px solid rgba(17,17,17,0.35)",
-            borderRadius:6, padding:"14px 36px",
-            textAlign:"center", background:"transparent",
-            fontFamily:"'Georgia',serif",
-            transform:"rotate(-8deg)",
+          <div style={{
+            border:"3px solid rgba(243,156,18,0.5)",
+            borderRadius:4, padding:"8px 18px",
+            textAlign:"center",
+            transform:"rotate(-6deg)",
           }}>
-            <div style={{
-              fontSize:13, fontWeight:900, letterSpacing:6,
-              textTransform:"uppercase", color:"rgba(17,17,17,0.35)",
-              borderBottom:"3px solid rgba(17,17,17,0.35)",
-              paddingBottom:6, marginBottom:6, lineHeight:1
+            <div style={{ fontSize:9, fontWeight:900, letterSpacing:4,
+              textTransform:"uppercase", color:"rgba(243,156,18,0.7)",
+              borderBottom:"2px solid rgba(243,156,18,0.5)",
+              paddingBottom:4, marginBottom:4, lineHeight:1
             }}>Dermana</div>
-            <div style={{
-              fontSize:28, fontWeight:900, letterSpacing:8,
-              textTransform:"uppercase", color:"rgba(17,17,17,0.35)",
+            <div style={{ fontSize:18, fontWeight:900, letterSpacing:4,
+              textTransform:"uppercase", color:"rgba(243,156,18,0.7)",
               lineHeight:1
             }}>Ulaştı</div>
-            <div style={{
-              fontSize:8, letterSpacing:3,
-              color:"rgba(17,17,17,0.35)",
-              textTransform:"uppercase", marginTop:7,
-            }}>✦ derthanem ✦</div>
           </div>
         </div>
       )}
