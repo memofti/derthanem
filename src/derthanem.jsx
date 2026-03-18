@@ -509,9 +509,15 @@ function Landing({ onDert, onDerman }) {
 function DertCard({ dert, i=0, user, openId, setOpenId,
                     cTexts, setCTexts, cWarns, setCWarns,
                     onRate, onComment, onEdit, onEditDert, onRelate, onClose, onDelete,
-                    onLike, onReport, onNeedAuth, isNew=false }) {
+                    onLike, onReport, onNeedAuth, isNew=false, dark=false }) {
   const owned    = user && user.id === dert.authorId;
   const isOpen   = openId === dert.id;
+  const cardBg   = dark ? "#1e1e1e" : "#fff";
+  const cardBdr  = dark ? "#333"    : "#111";
+  const subBg    = dark ? "#2a2a2a" : "#f9f9f9";
+  const subBdr   = dark ? "#333"    : "#eee";
+  const fgCard   = dark ? "#fff"    : "#111";
+  const mutedCard= dark ? "#888"    : "#777";
   const [editingId,   setEditingId]   = useState(null);
   const [editText,    setEditText]    = useState("");
   const [copied,      setCopied]      = useState(false);
@@ -543,7 +549,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
   const isClosed = dert.closed && !dert.solved;
 
   return (
-    <div className={`dert-card${isNew?" dert-new":""}`} style={{ background:"#fff", border:"2px solid #111", marginBottom:16,
+    <div className={`dert-card${isNew?" dert-new":""}`} style={{ background:cardBg, border:`2px solid ${cardBdr}`, marginBottom:16,
       boxShadow: dert.solved?"6px 6px 0 #111": isClosed?"3px 3px 0 #bbb":"none",
       opacity: isClosed ? .72 : 1,
       transition:"box-shadow .3s, transform .18s",
@@ -594,8 +600,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
 
       {/* Kapatıldı bandı */}
       {isClosed && (
-        <div style={{ background:"#f5f5f5", color:"#666", padding:"7px 18px 7px 22px",
-          display:"flex", alignItems:"center", gap:10, borderBottom:"1.5px solid #e8e8e8" }}>
+        <div style={{ background:subBg, color:mutedCard, padding:"7px 18px 7px 22px",
+          display:"flex", alignItems:"center", gap:10, borderBottom:`1.5px solid ${subBdr}` }}>
           <span style={{ fontSize:13 }}>🔒</span>
           <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, textTransform:"uppercase" }}>
             Dert Kapatıldı · Sahibi "Derdim Geçti" dedi
@@ -609,13 +615,13 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           <Av char={dert.avatar} inv size={38}/>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", minWidth:0 }}>
-              <span style={{ fontWeight:700, fontSize:14 }}>{dert.author}</span>
+              <span style={{ fontWeight:700, fontSize:14, color:fgCard }}>{dert.author}</span>
               <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                background:"#111", color:"#fff", padding:"2px 7px", flexShrink:0 }}>{dert.category}</span>
+                background:fgCard, color:cardBg, padding:"2px 7px", flexShrink:0 }}>{dert.category}</span>
               {dert.isAnon && <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                border:"1.5px solid #ddd", color:"#777", padding:"2px 7px", flexShrink:0 }}>anonim</span>}
+                border:`1.5px solid ${subBdr}`, color:mutedCard, padding:"2px 7px", flexShrink:0 }}>anonim</span>}
               {owned && <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                border:"1.5px solid #ddd", color:"#777", padding:"2px 7px", flexShrink:0 }}>senin derdin</span>}
+                border:`1.5px solid ${subBdr}`, color:mutedCard, padding:"2px 7px", flexShrink:0 }}>senin derdin</span>}
               <span style={{ fontSize:11, color:"#888", marginLeft:"auto", flexShrink:0 }}>{
                 dert.ts ? (()=>{
                   const d=Math.floor((Date.now()-dert.ts)/1000);
@@ -627,22 +633,24 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
               }</span>
             </div>
             <div style={{ fontSize:15, fontWeight:800, marginTop:8, lineHeight:1.35,
-              letterSpacing:"-.3px", wordBreak:"break-word" }}>
+              letterSpacing:"-.3px", wordBreak:"break-word", color:fgCard }}>
               {editingDert ? (
                 <input value={dertEditForm.title}
                   onChange={e=>setDertEditForm(p=>({...p,title:e.target.value}))}
                   style={{ width:"100%", padding:"8px 10px", fontFamily:"'Georgia',serif",
-                    fontSize:15, fontWeight:800, border:"2px solid #111",
+                    fontSize:15, fontWeight:800, border:`2px solid ${cardBdr}`,
+                    background:cardBg, color:fgCard,
                     boxSizing:"border-box", outline:"none" }}/>
               ) : dert.title}
             </div>
-            <div style={{ fontSize:13, color:"#333", marginTop:6, lineHeight:1.8, wordBreak:"break-word" }}>
+            <div style={{ fontSize:13, color:dark?"#ccc":"#333", marginTop:6, lineHeight:1.8, wordBreak:"break-word" }}>
               {editingDert ? (
                 <textarea value={dertEditForm.content}
                   onChange={e=>setDertEditForm(p=>({...p,content:e.target.value}))}
                   rows={3}
                   style={{ width:"100%", padding:"8px 10px", fontFamily:"'Georgia',serif",
-                    fontSize:13, border:"2px solid #111", lineHeight:1.8,
+                    fontSize:13, border:`2px solid ${cardBdr}`, lineHeight:1.8,
+                    background:cardBg, color:fgCard,
                     resize:"vertical", boxSizing:"border-box", outline:"none", marginTop:6 }}/>
               ) : dert.content}
             </div>
@@ -769,16 +777,18 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
         {/* Comments */}
         {isOpen && dert.comments.length>0 && (
           <div style={{ marginTop:10 }}>
-            {dert.comments.map(c => {
+            {[...dert.comments]
+              .sort((a,b) => (b.likedBy||[]).length - (a.likedBy||[]).length)
+              .map(c => {
               const isBest      = c.ownerRated && c.stars===10;
               const isMyComment = user && user.id === c.authorId;
               const canEdit     = isMyComment && !c.ownerRated && !isClosed;
               const isEditing   = editingId === c.id;
               return (
                 <div key={c.id} style={{
-                  background: isBest?"#111":"#f9f9f9",
-                  color: isBest?"#fff":"#111",
-                  border: isBest?"2px solid #111":"1.5px solid #eee",
+                  background: isBest?"#111":subBg,
+                  color: isBest?"#fff":fgCard,
+                  border: isBest?`2px solid ${cardBdr}`:`1.5px solid ${subBdr}`,
                   padding:"13px 15px", marginBottom:8 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:8 }}>
                     <Av char={c.avatar} inv={!isBest} size={26}/>
@@ -881,8 +891,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                     placeholder={user?"Derman ol, çözüm öner…":"Derman olmak için giriş yap…"}
                     rows={3}
                     style={{ width:"100%", padding:"10px 12px", boxSizing:"border-box",
-                      border:"2px solid #ddd", fontFamily:"'Georgia',serif", fontSize:13,
-                      lineHeight:1.7, resize:"vertical", background:"#fff", color:"#111",
+                      border:`2px solid ${subBdr}`, fontFamily:"'Georgia',serif", fontSize:13,
+                      lineHeight:1.7, resize:"vertical", background:cardBg, color:fgCard,
                       cursor:user?"text":"pointer", outline:"none" }}/>
                   {user && (
                     <div style={{
@@ -1011,6 +1021,9 @@ export default function Derthanem() {
   const [dark,   setDark]     = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState(new Set());
+  const [welcomeMsg, setWelcomeMsg] = useState(null); // hoş geldin banner
+  const [userAvatar, setUserAvatar] = useState(null);  // seçili emoji avatar
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const [showPost, setShowPost] = useState(false);
   const [postForm, setPostForm] = useState({ title:"", content:"", category:"İş", isAnon:false });
@@ -1103,7 +1116,23 @@ export default function Derthanem() {
   }, [derts, user]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null), 4000); };
-  const handleAuth = (u) => { setUser(u); setAuth(null); setScreen("app"); loadDerts(); };
+  const handleAuth = async (u) => {
+    setUser(u); setAuth(null); setScreen("app");
+    await loadDerts();
+    // Giriş sonrası bekleyen dermanları say
+    const { data } = await supabase
+      .from("comments")
+      .select("id, dert_id, derts!inner(author_id)")
+      .eq("derts.author_id", u.id)
+      .eq("owner_rated", false);
+    const count = data?.length || 0;
+    if (count > 0) {
+      setWelcomeMsg("Hoş geldin " + u.name + "! 🎉 Dertlerine " + count + " yeni derman geldi.");
+    } else {
+      setWelcomeMsg("Hoş geldin " + u.name + "!");
+    }
+    setTimeout(() => setWelcomeMsg(null), 5000);
+  };
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null); setScreen("landing"); setDraft(null);
@@ -1113,11 +1142,20 @@ export default function Derthanem() {
   /* ── Supabase handlers ── */
   const handleRate = async (dertId, commentId, stars) => {
     const badge = stars===10?"gold":stars>=8?"silver":null;
+    // Önce UI'ı hemen güncelle (optimistic)
+    setDerts(prev => prev.map(d => {
+      if (d.id !== dertId) return d;
+      const comments = d.comments.map(c =>
+        c.id !== commentId ? c : { ...c, stars, ownerRated:true, badge }
+      );
+      return { ...d, comments, solved: stars===10 ? true : d.solved };
+    }));
+    if (stars===10) showToast("solved_"+dertId);
+    // Sonra DB'ye yaz
     await supabase.from("comments")
       .update({ stars, owner_rated:true, badge }).eq("id", commentId);
     if (stars===10) {
       await supabase.from("derts").update({ solved:true }).eq("id", dertId);
-      showToast("solved_"+dertId);
     }
     await loadDerts();
   };
@@ -1466,7 +1504,32 @@ export default function Derthanem() {
         <div style={{ background:"#111", color:"#fff", border:"2px solid #111",
           padding:"26px 26px", marginBottom:20, boxShadow:"6px 6px 0 #444" }}>
           <div style={{ display:"flex", alignItems:"center", gap:18, flexWrap:"wrap" }}>
-            <Av char={user.name[0].toUpperCase()} size={60}/>
+            {/* Avatar — tıklanabilir emoji seçici */}
+            <div style={{ position:"relative" }}>
+              <div onClick={()=>setShowAvatarPicker(v=>!v)}
+                style={{ width:60, height:60, borderRadius:"50%", background:"rgba(255,255,255,.15)",
+                  border:"2px solid rgba(255,255,255,.3)", display:"flex", alignItems:"center",
+                  justifyContent:"center", fontSize:28, cursor:"pointer", userSelect:"none" }}>
+                {userAvatar || user.name[0].toUpperCase()}
+              </div>
+              {showAvatarPicker && (
+                <div style={{ position:"absolute", top:68, left:0, zIndex:500,
+                  background:"#fff", border:"2px solid #111", boxShadow:"4px 4px 0 #333",
+                  padding:10, display:"flex", flexWrap:"wrap", gap:6, width:200 }}>
+                  {["😊","😎","🤗","🦁","🐺","🦊","🐻","🐼","🐨","🦋","🌻","⭐","🔥","💫","🎯","💙"].map(e=>(
+                    <button key={e} onClick={()=>{ setUserAvatar(e); setShowAvatarPicker(false); }}
+                      style={{ fontSize:22, background:"none", border:"none", cursor:"pointer",
+                        padding:4, borderRadius:4,
+                        background: userAvatar===e ? "#f0f0f0" : "none" }}>{e}</button>
+                  ))}
+                  <button onClick={()=>{ setUserAvatar(null); setShowAvatarPicker(false); }}
+                    style={{ fontSize:10, background:"none", border:"1px solid #ddd",
+                      cursor:"pointer", padding:"3px 8px", color:"#666", width:"100%" }}>
+                    Varsayılan
+                  </button>
+                </div>
+              )}
+            </div>
             <div style={{ flex:1, minWidth:120 }}>
               <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-.5px" }}>{user.name}</div>
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase",
@@ -1531,7 +1594,7 @@ export default function Derthanem() {
             user={user} openId={openId} setOpenId={setOpenId}
             cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns}
             onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-            onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth}/>)}
+            onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark}/>)}
 
         {/* My Comments */}
         {myComments.length>0 && <>
@@ -1688,6 +1751,18 @@ export default function Derthanem() {
           <style>{`@media(min-width:520px){.kbd-hint{display:inline!important}}`}</style>
         </div>
 
+        {/* Hoş geldin banner */}
+        {welcomeMsg && (
+          <div style={{ background:"#111", color:"#fff", padding:"13px 18px",
+            marginTop:16, display:"flex", alignItems:"center", justifyContent:"space-between",
+            fontFamily:"'Georgia',serif", fontSize:13, fontWeight:700,
+            boxShadow:"4px 4px 0 #333", animation:"fu .4s ease" }}>
+            <span>{welcomeMsg}</span>
+            <button onClick={()=>setWelcomeMsg(null)} style={{ background:"none", border:"none",
+              color:"rgba(255,255,255,.5)", cursor:"pointer", fontSize:16, padding:"0 4px" }}>✕</button>
+          </div>
+        )}
+
         {/* ── FEED ── */}
         {tab==="feed" && (<>
 
@@ -1770,7 +1845,7 @@ export default function Derthanem() {
                   user={user} openId={openId} setOpenId={setOpenId}
                   cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns}
                   onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth}/>
+                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark}/>
               </div>
             );
           })}
