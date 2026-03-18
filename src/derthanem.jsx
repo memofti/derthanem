@@ -1710,7 +1710,7 @@ export default function Derthanem() {
               </div>
             </div>
             );
-          })}
+          })
         )}
 
         {/* Genel istatistikler */}
