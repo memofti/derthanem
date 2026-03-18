@@ -286,13 +286,13 @@ function StarPicker({ onChange, dertSolved }) {
             onClick={() => handleClick(n)}
             style={{ background:"none", border:"none", cursor:"pointer", padding:"2px 3px",
               fontSize:16, lineHeight:1,
-              opacity: hov >= n ? 1 : sel >= n ? .85 : .25,
+              opacity: hov >= n ? 1 : sel >= n ? .9 : .45,
               transform: hov === n ? "scale(1.35)" : "scale(1)",
               transition:"all .1s" }}>⭐</button>
         ))}
       </div>
       {hov > 0 && (
-        <div style={{ fontSize:11, color:"#555", fontWeight:700 }}>
+        <div style={{ fontSize:11, color:"#333", fontWeight:700 }}>
           {hov === 10
             ? "⚠ 10 puan — Dert Dermana Ulaşır, yeni derman yazılamaz"
             : hov + " puan ver"}
@@ -313,7 +313,7 @@ function AuthModal({ mode, onClose, onAuth }) {
     border:"2px solid #ddd", fontFamily:"'Georgia',serif", fontSize:14,
     background:"#fff", color:"#111", outline:"none" };
   const lS = { fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase",
-    marginBottom:5, color:"#999", display:"block" };
+    marginBottom:5, color:"#666", display:"block" };
 
   const handleSubmit = async () => {
     setErr(""); setLoading(true);
@@ -392,7 +392,7 @@ function AuthModal({ mode, onClose, onAuth }) {
             {loading ? "Bekleniyor..." : tab==="login" ? "Giriş Yap →" : "Hesap Oluştur →"}
           </button>
           <button onClick={onClose} style={{ width:"100%", padding:"10px", background:"#fff",
-            color:"#aaa", border:"2px solid #eee", fontFamily:"'Georgia',serif",
+            color:"#666", border:"2px solid #eee", fontFamily:"'Georgia',serif",
             fontSize:13, cursor:"pointer" }}>Vazgeç</button>
 
           <div style={{ textAlign:"center", marginTop:12, fontSize:11, color:"#777" }}>
@@ -594,7 +594,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
 
       {/* Kapatıldı bandı */}
       {isClosed && (
-        <div style={{ background:"#f5f5f5", color:"#999", padding:"7px 18px 7px 22px",
+        <div style={{ background:"#f5f5f5", color:"#666", padding:"7px 18px 7px 22px",
           display:"flex", alignItems:"center", gap:10, borderBottom:"1.5px solid #e8e8e8" }}>
           <span style={{ fontSize:13 }}>🔒</span>
           <div style={{ fontSize:9, fontWeight:700, letterSpacing:2, textTransform:"uppercase" }}>
@@ -636,7 +636,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                     boxSizing:"border-box", outline:"none" }}/>
               ) : dert.title}
             </div>
-            <div style={{ fontSize:13, color:"#555", marginTop:6, lineHeight:1.8, wordBreak:"break-word" }}>
+            <div style={{ fontSize:13, color:"#333", marginTop:6, lineHeight:1.8, wordBreak:"break-word" }}>
               {editingDert ? (
                 <textarea value={dertEditForm.content}
                   onChange={e=>setDertEditForm(p=>({...p,content:e.target.value}))}
@@ -685,7 +685,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
             </button>
           )}
           {owned && relateCount > 0 && (
-            <span style={{ fontSize:11, color:"#aaa", fontStyle:"italic" }}>
+            <span style={{ fontSize:11, color:"#666", fontStyle:"italic" }}>
               🤝 {relateCount} kişi bu derde ortak
             </span>
           )}
@@ -694,7 +694,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           {owned && !dert.solved && !isClosed && !editingDert && (
             <button onClick={()=>{ setDertEditForm({title:dert.title,content:dert.content}); setEditingDert(true); }}
               style={{ padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
-                color:"#aaa", cursor:"pointer", fontFamily:"'Georgia',serif",
+                color:"#666", cursor:"pointer", fontFamily:"'Georgia',serif",
                 fontSize:11, fontWeight:700 }}>✏️ Düzenle</button>
           )}
 
@@ -721,7 +721,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           {owned && !dert.solved && !isClosed && (
             <button onClick={()=>onClose(dert.id)} style={{
               padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
-              color:"#aaa", cursor:"pointer", fontFamily:"'Georgia',serif",
+              color:"#666", cursor:"pointer", fontFamily:"'Georgia',serif",
               fontSize:11, fontWeight:700, marginLeft:"auto"
             }}>🔒 Derdim Geçti</button>
           )}
@@ -841,7 +841,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                       {owned && !dert.solved && !c.ownerRated && !isClosed ? (
                         <div>
                           <div style={{ fontSize:9, fontWeight:700, letterSpacing:2,
-                            textTransform:"uppercase", color:"#555", marginBottom:6 }}>Puanla (1–10)</div>
+                            textTransform:"uppercase", color:"#333", marginBottom:6 }}>Puanla (1–10)</div>
                           <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)}/>
                           <div style={{ fontSize:10, color:"#888", marginTop:5 }}>10 puan → dert dermana ulaşır ✦</div>
                         </div>
@@ -1285,7 +1285,7 @@ export default function Derthanem() {
   const bg1  = dark?"#1a1a1a":"#f7f7f5";
   const fg   = dark?"#fff":"#111";
   const bdr  = dark?"#333":"#111";
-  const muted= dark?"#888":"#bbb";
+  const muted= dark?"#aaa":"#666";
 
   const Header = ({ title, left }) => (
     <div style={{ position:"sticky", top:0, zIndex:200, background:bg0,
@@ -1560,7 +1560,7 @@ export default function Derthanem() {
         </>}
 
         <div style={{ marginTop:20, textAlign:"center" }}>
-          <button onClick={handleLogout} style={{ background:"#fff", color:"#aaa",
+          <button onClick={handleLogout} style={{ background:"#fff", color:"#666",
             border:"2px solid #ddd", padding:"10px 24px",
             fontFamily:"'Georgia',serif", fontSize:12, cursor:"pointer", fontWeight:700,
             letterSpacing:1 }}>Çıkış Yap</button>
@@ -1912,7 +1912,7 @@ export default function Derthanem() {
                   <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1px",
                     marginTop:8, lineHeight:1 }}>{value}</div>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5,
-                    textTransform:"uppercase", color:"#aaa", marginTop:6 }}>{label}</div>
+                    textTransform:"uppercase", color:"#666", marginTop:6 }}>{label}</div>
                   <div style={{ fontSize:10, color:"#888", marginTop:2 }}>{desc}</div>
                 </div>
               ))}
@@ -1926,7 +1926,7 @@ export default function Derthanem() {
                 <span style={{ fontSize:20 }}>🔒</span>
                 <div>
                   <div style={{ fontWeight:700, fontSize:14 }}>{stats.closed} dert kapatıldı</div>
-                  <div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>
+                  <div style={{ fontSize:11, color:"#666", marginTop:2 }}>
                     Sahipleri "Derdim Geçti" dedi — derman gelmese de iyileştiler
                   </div>
                 </div>
@@ -1971,7 +1971,7 @@ export default function Derthanem() {
                         alignItems:"center", gap:6 }}>
                         <span>{CAT_ICONS[c]}</span>{c}
                       </span>
-                      <span style={{ fontSize:11, color:"#aaa" }}>{count} dert · %{pct}</span>
+                      <span style={{ fontSize:11, color:"#666" }}>{count} dert · %{pct}</span>
                     </div>
                     <div style={{ height:6, background:"#f0f0f0", border:"1px solid #eee" }}>
                       <div style={{ height:"100%", background:"#111",
@@ -1993,7 +1993,7 @@ export default function Derthanem() {
                 <div style={{ fontWeight:800, fontSize:14, marginBottom:4 }}>
                   {stats.mostRelated.title}
                 </div>
-                <div style={{ fontSize:12, color:"#aaa" }}>
+                <div style={{ fontSize:12, color:"#666" }}>
                   {stats.maxRelate} kişi "Benimkine benziyor" dedi
                 </div>
               </div>
@@ -2001,7 +2001,7 @@ export default function Derthanem() {
 
             {/* Toplam derman */}
             <div style={{ border:"2px dashed #ddd", padding:"22px 20px",
-              textAlign:"center", color:"#aaa", marginTop:10 }}>
+              textAlign:"center", color:"#666", marginTop:10 }}>
               <div style={{ fontSize:32, fontWeight:900, color:"#111", letterSpacing:"-1px" }}>
                 {stats.totalComs}
               </div>
