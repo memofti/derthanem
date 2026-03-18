@@ -41,6 +41,7 @@ const mapDert = (d) => ({
 });
 
 /* ─── Config ──────────────────────────────────────────────── */
+const ADMIN_EMAIL = "memofti@gmail.com";
 const CATS = ["Hepsi","İş","Aile","Aşk","Arkadaşlık","Sağlık","Para"];
 const CAT_ICONS = { Hepsi:"✦", İş:"💼", Aile:"🏠", Aşk:"❤️", Arkadaşlık:"🤝", Sağlık:"🌿", Para:"💰" };
 
@@ -1031,6 +1032,9 @@ export default function Derthanem() {
   const [welcomeMsg, setWelcomeMsg] = useState(null); // hoş geldin banner
   const [userAvatar, setUserAvatar] = useState(null);  // seçili emoji avatar
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [adminReports, setAdminReports] = useState([]);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const [showPost, setShowPost] = useState(false);
   const [postForm, setPostForm] = useState({ title:"", content:"", category:"İş", isAnon:false });
@@ -1209,8 +1213,14 @@ export default function Derthanem() {
     await loadDerts();
   };
 
-  const handleReport = (dertId, commentId) => {
+  const handleReport = async (dertId, commentId) => {
     if (!user) return;
+    await supabase.from("reports").insert({
+      reporter_id: user.id,
+      dert_id: dertId || null,
+      comment_id: commentId || null,
+      reason: commentId ? "yorum sikayeti" : "dert sikayeti",
+    });
     showToast("report_"+dertId+"_"+(commentId||"dert"));
   };
 
@@ -1441,6 +1451,20 @@ export default function Derthanem() {
               </div>
             )}
 
+            {/* Admin butonu — sadece admin kullanıcıya görünür */}
+            {isAdmin && (
+              <button onClick={async()=>{
+                const { data } = await supabase.from("reports")
+                  .select("*, profiles(name)")
+                  .order("created_at", { ascending:false });
+                setAdminReports(data||[]);
+                setScreen("admin");
+              }} style={{ background:"#c0392b", color:"#fff",
+                border:"2px solid #c0392b", padding:"6px 10px", cursor:"pointer",
+                fontFamily:"'Georgia',serif", fontSize:11, fontWeight:700,
+                flexShrink:0 }}>🚩 Admin</button>
+            )}
+
             {/* Profil — sadece avatar + isim (isim mobilde gizli) */}
             <div onClick={()=>{ setShowNotifs(false); setScreen(screen==="profile"?"app":"profile"); }}
               style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer",
@@ -1496,6 +1520,95 @@ export default function Derthanem() {
   );
 
   /* ══ PROFILE ══ */
+  /* ══ ADMIN ══ */
+  if (screen==="admin" && isAdmin) return (
+    <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"'Georgia',serif" }}>
+      <CSS/><Toast toast={toast}/>
+      <Header left={
+        <button onClick={()=>setScreen("app")} style={{ background:"none", border:"none",
+          cursor:"pointer", fontFamily:"'Georgia',serif", fontSize:13, fontWeight:700,
+          marginRight:4, padding:"4px 8px" }}>← Geri</button>
+      }/>
+      <div style={{ maxWidth:800, margin:"0 auto", padding:"28px 16px 60px" }}>
+        <div style={{ fontSize:9, letterSpacing:4, textTransform:"uppercase", color:"#aaa", marginBottom:6 }}>Yönetim Paneli</div>
+        <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px", marginBottom:24 }}>Şikayet Kutusu</div>
+
+        {adminReports.length === 0 ? (
+          <div style={{ border:"2px dashed #ddd", padding:"40px 20px", textAlign:"center", color:"#aaa" }}>
+            <div style={{ fontSize:32, marginBottom:12 }}>✅</div>
+            <div style={{ fontSize:14, fontWeight:700 }}>Şikayet yok — her şey temiz!</div>
+          </div>
+        ) : (
+          adminReports.map(r => (
+            <div key={r.id} style={{ background:"#fff", border:"2px solid #111",
+              padding:"18px 20px", marginBottom:12, boxShadow:"3px 3px 0 #111" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:8 }}>
+                <div>
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:2,
+                    textTransform:"uppercase", color:"#c0392b", marginBottom:6 }}>
+                    🚩 {r.reason}
+                  </div>
+                  <div style={{ fontSize:12, color:"#666", marginBottom:4 }}>
+                    <strong>Şikayet eden:</strong> {r.profiles?.name || "?"} ({r.reporter_id?.slice(0,8)}...)
+                  </div>
+                  {r.dert_id && (
+                    <div style={{ fontSize:12, color:"#666", marginBottom:4 }}>
+                      <strong>Dert ID:</strong> {r.dert_id}
+                    </div>
+                  )}
+                  {r.comment_id && (
+                    <div style={{ fontSize:12, color:"#666", marginBottom:4 }}>
+                      <strong>Yorum ID:</strong> {r.comment_id}
+                    </div>
+                  )}
+                  <div style={{ fontSize:11, color:"#aaa" }}>
+                    {new Date(r.created_at).toLocaleString("tr-TR")}
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  {r.dert_id && (
+                    <button onClick={()=>{ setScreen("app"); setTab("feed"); setOpenId(r.dert_id); }}
+                      style={{ padding:"6px 14px", background:"#111", color:"#fff",
+                        border:"2px solid #111", cursor:"pointer",
+                        fontFamily:"'Georgia',serif", fontSize:11, fontWeight:700 }}>
+                      Derte Git
+                    </button>
+                  )}
+                  <button onClick={async()=>{
+                    await supabase.from("reports").delete().eq("id", r.id);
+                    setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                  }} style={{ padding:"6px 14px", background:"#fff", color:"#c0392b",
+                    border:"2px solid #c0392b", cursor:"pointer",
+                    fontFamily:"'Georgia',serif", fontSize:11, fontWeight:700 }}>
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Genel istatistikler */}
+        <div style={{ marginTop:32, borderTop:"2px solid #111", paddingTop:24 }}>
+          <div style={{ fontSize:13, fontWeight:700, letterSpacing:1, marginBottom:16 }}>Genel Durum</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+            {[
+              ["Toplam Dert", derts.length, "📋"],
+              ["Çözülen", derts.filter(d=>d.solved).length, "⭐"],
+              ["Açık Şikayet", adminReports.length, "🚩"],
+            ].map(([label, val, icon])=>(
+              <div key={label} style={{ border:"2px solid #111", padding:"16px", textAlign:"center" }}>
+                <div style={{ fontSize:24 }}>{icon}</div>
+                <div style={{ fontSize:28, fontWeight:900, marginTop:6 }}>{val}</div>
+                <div style={{ fontSize:10, color:"#666", letterSpacing:1, textTransform:"uppercase", marginTop:4 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   if (screen==="profile" && user) return (
     <div style={{ minHeight:"100vh", background:bg1, fontFamily:"'Georgia',serif", color:fg }}>
       <CSS/><Toast toast={toast}/>
