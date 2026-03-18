@@ -259,20 +259,45 @@ function Badge({ type }) {
   );
 }
 
-function StarPicker({ onChange }) {
+function StarPicker({ onChange, dertSolved }) {
   const [hov, setHov] = useState(0);
+  const [sel, setSel] = useState(0);
+
+  const handleClick = (n) => {
+    if (n === 10) {
+      const ok = window.confirm(
+        "10 puan veriyorsunuz.\n\nBu dert \"Dermana Ulaşmış\" sayılacak ve artık yeni derman yazılamayacak.\n\nOnaylıyor musunuz?"
+      );
+      if (!ok) return;
+    } else {
+      const ok = window.confirm(n + " puan vermek istediğinize emin misiniz?");
+      if (!ok) return;
+    }
+    setSel(n);
+    onChange(n);
+  };
+
   return (
-    <div style={{ display:"flex", gap:1 }}>
-      {[1,2,3,4,5,6,7,8,9,10].map(n => (
-        <button key={n}
-          onMouseEnter={() => setHov(n)} onMouseLeave={() => setHov(0)}
-          onClick={() => onChange(n)}
-          style={{ background:"none", border:"none", cursor:"pointer", padding:"1px 2px",
-            fontSize:15, lineHeight:1,
-            opacity: hov >= n ? 1 : .15,
-            transform: hov === n ? "scale(1.3)" : "scale(1)",
-            transition:"all .1s" }}>⭐</button>
-      ))}
+    <div>
+      <div style={{ display:"flex", gap:2, marginBottom:4 }}>
+        {[1,2,3,4,5,6,7,8,9,10].map(n => (
+          <button key={n}
+            onMouseEnter={() => setHov(n)} onMouseLeave={() => setHov(0)}
+            onClick={() => handleClick(n)}
+            style={{ background:"none", border:"none", cursor:"pointer", padding:"2px 3px",
+              fontSize:16, lineHeight:1,
+              opacity: hov >= n ? 1 : sel >= n ? .85 : .25,
+              transform: hov === n ? "scale(1.35)" : "scale(1)",
+              transition:"all .1s" }}>⭐</button>
+        ))}
+      </div>
+      {hov > 0 && (
+        <div style={{ fontSize:11, color:"#555", fontWeight:700 }}>
+          {hov === 10
+            ? "⚠ 10 puan — Dert Dermana Ulaşır, yeni derman yazılamaz"
+            : hov + " puan ver"}
+        </div>
+      )}
     </div>
   );
 }
@@ -370,7 +395,7 @@ function AuthModal({ mode, onClose, onAuth }) {
             color:"#aaa", border:"2px solid #eee", fontFamily:"'Georgia',serif",
             fontSize:13, cursor:"pointer" }}>Vazgeç</button>
 
-          <div style={{ textAlign:"center", marginTop:12, fontSize:11, color:"#bbb" }}>
+          <div style={{ textAlign:"center", marginTop:12, fontSize:11, color:"#777" }}>
             {tab==="login" ? (
               <>Hesabın yok mu?{" "}
                 <span onClick={()=>{setTab("register");setErr("");}}
@@ -588,10 +613,10 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
               <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
                 background:"#111", color:"#fff", padding:"2px 7px", flexShrink:0 }}>{dert.category}</span>
               {dert.isAnon && <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                border:"1.5px solid #ddd", color:"#bbb", padding:"2px 7px", flexShrink:0 }}>anonim</span>}
+                border:"1.5px solid #ddd", color:"#777", padding:"2px 7px", flexShrink:0 }}>anonim</span>}
               {owned && <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
-                border:"1.5px solid #ddd", color:"#bbb", padding:"2px 7px", flexShrink:0 }}>senin derdin</span>}
-              <span style={{ fontSize:11, color:"#ccc", marginLeft:"auto", flexShrink:0 }}>{
+                border:"1.5px solid #ddd", color:"#777", padding:"2px 7px", flexShrink:0 }}>senin derdin</span>}
+              <span style={{ fontSize:11, color:"#888", marginLeft:"auto", flexShrink:0 }}>{
                 dert.ts ? (()=>{
                   const d=Math.floor((Date.now()-dert.ts)/1000);
                   if(d<60) return "Az önce";
@@ -729,7 +754,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
         <div onClick={()=>setOpenId(isOpen?null:dert.id)}
           style={{ display:"flex", alignItems:"center", gap:8, marginTop:10,
             paddingTop:10, borderTop:"1.5px solid #f0f0f0", cursor:"pointer", userSelect:"none" }}>
-          <span style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#bbb" }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:2, textTransform:"uppercase", color:"#777" }}>
             {dert.comments.length} Derman
           </span>
           {dert.comments.length>0 && (
@@ -816,14 +841,14 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                       {owned && !dert.solved && !c.ownerRated && !isClosed ? (
                         <div>
                           <div style={{ fontSize:9, fontWeight:700, letterSpacing:2,
-                            textTransform:"uppercase", color:"#aaa", marginBottom:6 }}>Puanla (1–10)</div>
+                            textTransform:"uppercase", color:"#555", marginBottom:6 }}>Puanla (1–10)</div>
                           <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)}/>
-                          <div style={{ fontSize:10, color:"#ccc", marginTop:5 }}>10 puan → dert dermana ulaşır ✦</div>
+                          <div style={{ fontSize:10, color:"#888", marginTop:5 }}>10 puan → dert dermana ulaşır ✦</div>
                         </div>
                       ) : c.ownerRated ? (
                         <ScoreBar value={c.stars} inv={isBest}/>
                       ) : (
-                        <span style={{ fontSize:11, color:isBest?"rgba(255,255,255,.4)":"#ccc",
+                        <span style={{ fontSize:11, color:isBest?"rgba(255,255,255,.6)":"#888",
                           fontStyle:"italic" }}>Sadece dert sahibi puanlayabilir</span>
                       )}
                     </div>
@@ -883,7 +908,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                 </div>
               </div>
               {!user && (
-                <div style={{ fontSize:11, color:"#ccc", marginTop:6, textAlign:"center" }}>
+                <div style={{ fontSize:11, color:"#888", marginTop:6, textAlign:"center" }}>
                   <span onClick={()=>onNeedAuth("login")} style={{ color:"#111",fontWeight:700,cursor:"pointer",textDecoration:"underline" }}>Giriş yap</span>
                   {" "}veya{" "}
                   <span onClick={()=>onNeedAuth("register")} style={{ color:"#111",fontWeight:700,cursor:"pointer",textDecoration:"underline" }}>üye ol</span>
@@ -891,7 +916,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
               )}
             </>
           ) : (
-            <div style={{ fontSize:12, color:"#ccc", fontStyle:"italic", textAlign:"center", padding:"8px 0" }}>
+            <div style={{ fontSize:12, color:"#888", fontStyle:"italic", textAlign:"center", padding:"8px 0" }}>
               {dert.solved
                 ? "⭐ Bu dert dermana ulaştı — derman yazılamaz"
                 : isClosed
@@ -1410,7 +1435,7 @@ export default function Derthanem() {
       height:"100vh", fontFamily:"Georgia,serif", flexDirection:"column", gap:16,
       background:"#fff" }}>
       <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-1px" }}>Derthanem</div>
-      <div style={{ fontSize:11, letterSpacing:3, textTransform:"uppercase", color:"#bbb",
+      <div style={{ fontSize:11, letterSpacing:3, textTransform:"uppercase", color:"#777",
         animation:"pulse 1.2s ease infinite" }}>yükleniyor...</div>
       <CSS/>
     </div>
@@ -1490,11 +1515,11 @@ export default function Derthanem() {
 
         {/* My Derts */}
         <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
-          color:"#bbb", marginBottom:14 }}>Dertlerim ({myDerts.length})</div>
+          color:"#777", marginBottom:14 }}>Dertlerim ({myDerts.length})</div>
 
         {myDerts.length===0 ? (
           <div style={{ border:"2px dashed #ddd", padding:"32px", textAlign:"center",
-            color:"#ccc", fontSize:13, marginBottom:24 }}>
+            color:"#888", fontSize:13, marginBottom:24 }}>
             Henüz dert paylaşmadın<br/>
             <span onClick={()=>{setScreen("app");setShowPost(true);}}
               style={{ fontSize:12, color:"#111", fontWeight:700, cursor:"pointer",
@@ -1511,11 +1536,11 @@ export default function Derthanem() {
         {/* My Comments */}
         {myComments.length>0 && <>
           <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
-            color:"#bbb", marginBottom:14, marginTop:24 }}>Dermanlarım ({myComments.length})</div>
+            color:"#777", marginBottom:14, marginTop:24 }}>Dermanlarım ({myComments.length})</div>
           {myComments.map(c => (
             <div key={c.id} style={{ background:"#fff", border:"2px solid #111",
               padding:"14px 18px", marginBottom:10 }}>
-              <div style={{ fontSize:9, color:"#bbb", fontWeight:700, letterSpacing:1.5,
+              <div style={{ fontSize:9, color:"#777", fontWeight:700, letterSpacing:1.5,
                 textTransform:"uppercase", marginBottom:8,
                 wordBreak:"break-word" }}>"{c.dertTitle}"</div>
               <p style={{ margin:"0 0 10px", fontSize:13, lineHeight:1.75,
@@ -1527,7 +1552,7 @@ export default function Derthanem() {
                     {c.badge && <Badge type={c.badge}/>}
                   </div>
                 ) : (
-                  <span style={{ fontSize:11, color:"#ccc", fontStyle:"italic" }}>Henüz puanlanmadı</span>
+                  <span style={{ fontSize:11, color:"#888", fontStyle:"italic" }}>Henüz puanlanmadı</span>
                 )}
               </div>
             </div>
@@ -1682,7 +1707,7 @@ export default function Derthanem() {
               <button onClick={()=>setSearch("")}
                 style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)",
                   background:"none", border:"none", cursor:"pointer", fontSize:16,
-                  color:"#bbb", lineHeight:1 }}>✕</button>
+                  color:"#777", lineHeight:1 }}>✕</button>
             )}
           </div>
 
@@ -1718,12 +1743,12 @@ export default function Derthanem() {
 
           {/* Sonuç / boş durumlar */}
           {search && (
-            <div style={{ fontSize:11, color:"#bbb", marginBottom:10, letterSpacing:.5 }}>
+            <div style={{ fontSize:11, color:"#777", marginBottom:10, letterSpacing:.5 }}>
               "{search}" için {filtered.length} sonuç
             </div>
           )}
           {filtered.length===0 && (
-            <div style={{ border:"2px dashed #ddd", padding:32, textAlign:"center", color:"#ccc", fontSize:13 }}>
+            <div style={{ border:"2px dashed #ddd", padding:32, textAlign:"center", color:"#888", fontSize:13 }}>
               {search ? "Arama sonucu bulunamadı" : "Bu kategoride henüz dert yok"}
             </div>
           )}
@@ -1764,7 +1789,7 @@ export default function Derthanem() {
             </div>
 
             {board.length===0 ? (
-              <div style={{ border:"2px dashed #ddd", padding:32, textAlign:"center", color:"#ccc", fontSize:13 }}>
+              <div style={{ border:"2px dashed #ddd", padding:32, textAlign:"center", color:"#888", fontSize:13 }}>
                 Henüz puanlama yapılmadı — ilk dermanı yaz!
               </div>
             ) : (<>
@@ -1869,7 +1894,7 @@ export default function Derthanem() {
           <div style={{ paddingTop:22 }}>
             <div style={{ paddingBottom:18, marginBottom:20, borderBottom:"2px solid #111" }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:4,
-                textTransform:"uppercase", color:"#ccc", marginBottom:5 }}>Anlık Veriler</div>
+                textTransform:"uppercase", color:"#888", marginBottom:5 }}>Anlık Veriler</div>
               <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px" }}>Topluluk İstatistikleri</div>
             </div>
 
@@ -1888,7 +1913,7 @@ export default function Derthanem() {
                     marginTop:8, lineHeight:1 }}>{value}</div>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5,
                     textTransform:"uppercase", color:"#aaa", marginTop:6 }}>{label}</div>
-                  <div style={{ fontSize:10, color:"#ccc", marginTop:2 }}>{desc}</div>
+                  <div style={{ fontSize:10, color:"#888", marginTop:2 }}>{desc}</div>
                 </div>
               ))}
             </div>
@@ -1932,7 +1957,7 @@ export default function Derthanem() {
             <div style={{ background:"#fff", border:"2px solid #111",
               padding:"18px 20px", marginBottom:10 }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
-                textTransform:"uppercase", color:"#ccc", marginBottom:14 }}>
+                textTransform:"uppercase", color:"#888", marginBottom:14 }}>
                 Kategori Dağılımı
               </div>
               {CATS.slice(1).map(c => {
@@ -1962,7 +1987,7 @@ export default function Derthanem() {
               <div style={{ border:"2px solid #111", padding:"16px 20px",
                 background:"#fff", marginBottom:10 }}>
                 <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
-                  textTransform:"uppercase", color:"#ccc", marginBottom:10 }}>
+                  textTransform:"uppercase", color:"#888", marginBottom:10 }}>
                   🤝 En Çok Ortak Olunan Dert
                 </div>
                 <div style={{ fontWeight:800, fontSize:14, marginBottom:4 }}>
@@ -1984,7 +2009,7 @@ export default function Derthanem() {
                 textTransform:"uppercase", marginTop:4 }}>
                 toplam derman yazıldı
               </div>
-              <div style={{ fontSize:11, color:"#ccc", marginTop:6 }}>
+              <div style={{ fontSize:11, color:"#888", marginTop:6 }}>
                 Her biri bir insanın yüküne omuz vermek için 💙
               </div>
             </div>
