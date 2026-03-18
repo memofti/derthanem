@@ -20,8 +20,8 @@ const mapDert = (d) => ({
   content:    d.content,
   ts:         new Date(d.created_at).getTime(),
   category:   d.category,
-  solved:     d.solved,
-  closed:     d.closed,
+  solved:     d.solved === true || d.solved === 1,
+  closed:     d.closed === true || d.closed === 1,
   relatableBy:(d.relates  || []).map(r => r.user_id),
   isNew:      false,
   comments:   (d.comments || [])
@@ -555,6 +555,18 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
       transition:"box-shadow .3s, transform .18s",
       position:"relative", overflow:"hidden" }}>
 
+      {/* Dermana Ulaştı bandı — üst kısım */}
+      {dert.solved && (
+        <div style={{ background:"#111", color:"#fff", padding:"8px 20px",
+          display:"flex", alignItems:"center", gap:10,
+          borderBottom:"2px solid #111" }}>
+          <span style={{ fontSize:16 }}>⭐</span>
+          <div style={{ fontSize:10, fontWeight:900, letterSpacing:3,
+            textTransform:"uppercase" }}>Bu Dert Dermana Ulaştı!</div>
+          <span style={{ fontSize:16 }}>⭐</span>
+        </div>
+      )}
+
       {/* Soğuk damga — çözülen dertler */}
       {dert.solved && (
         <div style={{
@@ -563,7 +575,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           pointerEvents:"none", userSelect:"none",
         }}>
           <div className="stamp" style={{
-            border:"4px solid rgba(17,17,17,0.15)",
+            border:"5px solid rgba(17,17,17,0.35)",
             borderRadius:6, padding:"14px 36px",
             textAlign:"center", background:"transparent",
             fontFamily:"'Georgia',serif",
@@ -571,18 +583,18 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           }}>
             <div style={{
               fontSize:13, fontWeight:900, letterSpacing:6,
-              textTransform:"uppercase", color:"rgba(17,17,17,0.15)",
-              borderBottom:"2px solid rgba(17,17,17,0.15)",
+              textTransform:"uppercase", color:"rgba(17,17,17,0.35)",
+              borderBottom:"3px solid rgba(17,17,17,0.35)",
               paddingBottom:6, marginBottom:6, lineHeight:1
             }}>Dermana</div>
             <div style={{
               fontSize:28, fontWeight:900, letterSpacing:8,
-              textTransform:"uppercase", color:"rgba(17,17,17,0.15)",
+              textTransform:"uppercase", color:"rgba(17,17,17,0.35)",
               lineHeight:1
             }}>Ulaştı</div>
             <div style={{
               fontSize:8, letterSpacing:3,
-              color:"rgba(17,17,17,0.15)",
+              color:"rgba(17,17,17,0.35)",
               textTransform:"uppercase", marginTop:7,
             }}>✦ derthanem ✦</div>
           </div>
@@ -870,7 +882,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
         )}
 
         {/* Yorum kutusu */}
-        <div style={{ marginTop:12, paddingTop:12, borderTop:"1.5px solid #f0f0f0" }}>
+        <div style={{ marginTop:12, paddingTop:12, borderTop:`1.5px solid ${subBdr}` }}>
           {!owned && !isClosed && !dert.solved ? (
             <>
               <div style={{ display:"flex", gap:8, alignItems:"flex-start", minWidth:0 }}>
