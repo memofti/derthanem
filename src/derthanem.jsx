@@ -1530,7 +1530,7 @@ export default function Derthanem() {
                   padding:10, display:"flex", flexWrap:"wrap", gap:6, width:200 }}>
                   {["😊","😎","🤗","🦁","🐺","🦊","🐻","🐼","🐨","🦋","🌻","⭐","🔥","💫","🎯","💙"].map(e=>(
                     <button key={e} onClick={()=>{ setUserAvatar(e); setShowAvatarPicker(false); }}
-                      style={{ fontSize:22, background:"none", border:"none", cursor:"pointer",
+                      style={{ fontSize:22, border:"none", cursor:"pointer",
                         padding:4, borderRadius:4,
                         background: userAvatar===e ? "#f0f0f0" : "none" }}>{e}</button>
                   ))}
