@@ -1034,7 +1034,7 @@ export default function Derthanem() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [adminReports, setAdminReports] = useState([]);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   const [showPost, setShowPost] = useState(false);
   const [postForm, setPostForm] = useState({ title:"", content:"", category:"İş", isAnon:false });
@@ -1463,6 +1463,13 @@ export default function Derthanem() {
                 border:"2px solid #c0392b", padding:"6px 10px", cursor:"pointer",
                 fontFamily:"'Georgia',serif", fontSize:11, fontWeight:700,
                 flexShrink:0 }}>🚩 Admin</button>
+            )}
+            {/* Geçici debug — sonra sileceğiz */}
+            {user && !isAdmin && (
+              <span style={{ fontSize:9, color:"#aaa", maxWidth:100, overflow:"hidden",
+                textOverflow:"ellipsis", whiteSpace:"nowrap" }} title={user.email}>
+                {user.email}
+              </span>
             )}
 
             {/* Profil — sadece avatar + isim (isim mobilde gizli) */}
