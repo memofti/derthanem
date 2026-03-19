@@ -46,7 +46,7 @@ const mapDert = (d) => ({
 /* ─── Config ──────────────────────────────────────────────── */
 const ADMIN_EMAIL = "memofti@gmail.com";
 const CATS = ["Hepsi","İş","Aile","Aşk","Arkadaşlık","Sağlık","Para"];
-const CAT_ICONS = { Hepsi:"✦", İş:"💼", Aile:"🏠", Aşk:"❤️", Arkadaşlık:"🤝", Sağlık:"🌿", Para:"💰" };
+const CAT_ICONS = { "Hepsi":"✦", "İş":"💼", "Aile":"🏠", "Aşk":"❤️", "Arkadaşlık":"🤝", "Sağlık":"🌿", "Para":"💰" };
 
 /* ─── İçerik Moderasyon Sistemi ───────────────────────────── */
 
@@ -769,8 +769,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
       <div style={{
         position:"absolute", left:0, top:0, bottom:0, width:3,
         background: dert.solved ? "#111" : isClosed ? "#bbb" :
-          ({ İş:"#2980b9", Aile:"#8e44ad", Aşk:"#e74c3c",
-             Arkadaşlık:"#27ae60", Sağlık:"#16a085", Para:"#d35400" }[dert.category] || "#111"),
+          ({ "İş":"#2980b9", "Aile":"#8e44ad", "Aşk":"#e74c3c",
+             "Arkadaşlık":"#27ae60", "Sağlık":"#16a085", "Para":"#d35400" }[dert.category] || "#111"),
         opacity: dert.solved ? 1 : 0.6
       }}/>
 
@@ -946,257 +946,274 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           </button>
         </div>
 
-        {/* Derman başlık çubuğu */}
-        <div onClick={()=>setOpenId(isOpen?null:dert.id)}
-            style={{ display:"flex", alignItems:"center", gap:8, marginTop:12,
-              paddingTop:12, borderTop:`1.5px solid ${subBdr}`,
-              cursor: dert.comments.length>0 ? "pointer" : "default",
-              userSelect:"none" }}>
+          {/* ── DERMAN BÖLÜMÜ ── */}
+        <div style={{ marginTop:0 }}>
 
-            {/* Derman sayısı — belirgin */}
-            <div style={{
-              display:"flex", alignItems:"center", gap:6,
-              background: dert.comments.length>0 ? (dark?"#2a2a2a":"#f5f5f5") : "transparent",
-              border: dert.comments.length>0 ? `1.5px solid ${subBdr}` : "none",
-              padding: dert.comments.length>0 ? "4px 10px 4px 8px" : "0",
-              borderRadius:2,
+          {/* Derman toggle başlık */}
+          <div onClick={()=>dert.comments.length>0 && setOpenId(isOpen?null:dert.id)}
+            style={{
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:"10px 20px", paddingLeft:22,
+              background: dark ? "#1a1a1a" : "#f8f8f8",
+              borderTop: `2px solid ${dark?"#2a2a2a":"#ebebeb"}`,
+              cursor: dert.comments.length>0 ? "pointer" : "default",
+              userSelect:"none",
             }}>
-              <span style={{ fontSize:14 }}>💬</span>
-              <span style={{ fontSize:11, fontWeight:700, letterSpacing:.5, color:fgCard }}>
-                {dert.comments.length === 0
-                  ? "Henüz derman yok"
-                  : dert.comments.length + " Derman"}
+
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:12, fontWeight:800, letterSpacing:1,
+                textTransform:"uppercase", color: dert.comments.length>0 ? fgCard : mutedCard }}>
+                💬 {dert.comments.length === 0 ? "Henüz derman yok" : dert.comments.length+" Derman"}
               </span>
               {dert.comments.length>0 && (
-                <span style={{ fontSize:10, color:mutedCard, marginLeft:2 }}>
-                  {isOpen ? "▲" : "▼"}
+                <span style={{ fontSize:11, color:mutedCard, fontWeight:600 }}>
+                  {isOpen ? "▲ gizle" : "▼ göster"}
                 </span>
               )}
             </div>
 
-            {/* Puanla uyarısı */}
             {owned && !dert.solved && !isClosed && dert.comments.length>0 && (
-              <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:5,
-                background:"#fff3f3", border:"1.5px solid #ffcccc",
-                padding:"4px 10px", borderRadius:2,
-                animation:"pulse 2s infinite" }}>
-                <span style={{ fontSize:11 }}>⭐</span>
-                <span style={{ fontSize:10, color:"#c0392b", fontWeight:700, letterSpacing:.3 }}>
-                  Dermanı Puanla
-                </span>
-              </div>
+              <span style={{ fontSize:10, color:"#c0392b", fontWeight:700,
+                letterSpacing:.5, animation:"pulse 2s infinite",
+                background:"#fff3f3", padding:"3px 8px", border:"1px solid #ffcccc" }}>
+                ⭐ Puanla
+              </span>
             )}
           </div>
 
-        {/* Comments */}
-        {isOpen && dert.comments.length>0 && (
-          <div style={{ marginTop:10 }}>
-            {/* "DERMANLAR" başlık */}
-            <div style={{ fontSize:8, fontWeight:700, letterSpacing:3,
-              textTransform:"uppercase", color:mutedCard,
-              marginBottom:10, paddingBottom:6,
-              borderBottom:`1px solid ${subBdr}` }}>
-              ✦ Dermanlar
-            </div>
-            {[...dert.comments]
-              .sort((a,b) => (b.likedBy||[]).length - (a.likedBy||[]).length)
-              .map(c => {
-              const isBest      = c.ownerRated && c.stars===10;
-              const isMyComment = user && user.id === c.authorId;
-              const canEdit     = isMyComment && !c.ownerRated && !isClosed;
-              const isEditing   = editingId === c.id;
-              return (
-                <div key={c.id} style={{
-                  background: isBest ? "#111" : dark ? "#252525" : "#fafafa",
-                  color: isBest?"#fff":fgCard,
-                  border: isBest ? "2px solid #111" : `1.5px solid ${subBdr}`,
-                  borderLeft: isBest ? "4px solid #f39c12" : `4px solid ${subBdr}`,
-                  padding:"13px 15px", marginBottom:8,
-                  transition:"border-color .15s" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:8 }}>
-                    <Av char={(user && c.authorId===user.id && userAvatar) ? userAvatar : c.avatar} inv={!isBest} size={26}/>
-                    <span style={{ fontSize:13, fontWeight:700 }}>{c.author}</span>
-                    {c.badge && <Badge type={c.badge}/>}
-                    {canEdit && !isEditing && (
-                      <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
-                        <button onClick={()=>startEdit(c)} style={{
-                          background:"none",
-                          border:`1.5px solid ${isBest?"rgba(255,255,255,.3)":"#e0e0e0"}`,
-                          cursor:"pointer", padding:"2px 9px", fontSize:10, fontWeight:700,
-                          letterSpacing:1, textTransform:"uppercase",
-                          color: isBest?"rgba(255,255,255,.5)":"#999",
-                          fontFamily:"'Inter',system-ui,sans-serif" }}>Düzenle</button>
-                        <button onClick={()=>{
-                          if (window.confirm("Bu dermanı silmek istiyor musun?"))
-                            onDeleteComment(dert.id, c.id);
-                        }} style={{
-                          background:"none",
-                          border:"1.5px solid #ffcccc",
-                          cursor:"pointer", padding:"2px 9px", fontSize:10, fontWeight:700,
-                          color:"#c0392b", fontFamily:"'Inter',system-ui,sans-serif" }}>Sil</button>
+          {/* Dermanlar listesi */}
+          {isOpen && dert.comments.length>0 && (
+            <div style={{ background: dark?"#161616":"#f4f4f4",
+              borderTop:`1px solid ${dark?"#2a2a2a":"#e8e8e8"}` }}>
+              {[...dert.comments]
+                .sort((a,b) => (b.likedBy||[]).length - (a.likedBy||[]).length)
+                .map((c, ci) => {
+                const isBest      = c.ownerRated && c.stars===10;
+                const isMyComment = user && user.id === c.authorId;
+                const canEdit     = isMyComment && !c.ownerRated && !isClosed;
+                const isEditing   = editingId === c.id;
+                return (
+                  <div key={c.id} style={{
+                    background: isBest ? "#111" : cardBg,
+                    color: isBest ? "#fff" : fgCard,
+                    borderBottom: `1px solid ${dark?"#2a2a2a":"#ebebeb"}`,
+                    borderLeft: isBest ? "4px solid #f39c12" : `4px solid ${dark?"#333":"#e0e0e0"}`,
+                    padding:"14px 16px 14px 18px",
+                  }}>
+                    {/* Derman yazar satırı */}
+                    <div style={{ display:"flex", alignItems:"center", gap:8,
+                      flexWrap:"wrap", marginBottom:10 }}>
+                      <Av char={(user && c.authorId===user.id && userAvatar) ? userAvatar : c.avatar}
+                        inv={!isBest} size={28}/>
+                      <div>
+                        <span style={{ fontSize:13, fontWeight:700 }}>{c.author}</span>
+                        {c.isAnon && <span style={{ fontSize:9, color:mutedCard,
+                          marginLeft:6, fontWeight:600 }}>anonim</span>}
                       </div>
-                    )}
-                  </div>
-                  {isEditing ? (
-                    <div style={{ paddingLeft:34 }}>
-                      <textarea value={editText} onChange={e=>setEditText(e.target.value)} rows={3}
-                        style={{ width:"100%", padding:"9px 11px", boxSizing:"border-box",
-                          border:"2px solid #111", fontFamily:"'Inter',system-ui,sans-serif",
-                          fontSize:13, lineHeight:1.7, resize:"vertical",
-                          background:"#fff", color:"#111", outline:"none", marginBottom:8 }}
-                        autoFocus/>
-                      <div style={{ display:"flex", gap:6 }}>
-                        <button onClick={saveEdit} style={{ padding:"6px 14px", background:"#111",
-                          color:"#fff", border:"2px solid #111", cursor:"pointer",
-                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>Kaydet</button>
-                        <button onClick={()=>setEditingId(null)} style={{ padding:"6px 14px",
-                          background:"#fff", color:"#888", border:"2px solid #ddd",
-                          cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif", fontSize:11 }}>Vazgeç</button>
-                      </div>
+                      {c.badge && <Badge type={c.badge}/>}
+                      {canEdit && !isEditing && (
+                        <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+                          <button onClick={()=>startEdit(c)} style={{
+                            background:"none", border:`1px solid ${isBest?"rgba(255,255,255,.25)":"#ddd"}`,
+                            cursor:"pointer", padding:"2px 8px", fontSize:10, fontWeight:700,
+                            color: isBest?"rgba(255,255,255,.5)":"#999",
+                            fontFamily:"'Inter',system-ui,sans-serif" }}>Düzenle</button>
+                          <button onClick={()=>{
+                            if (window.confirm("Bu dermanı silmek istiyor musun?"))
+                              onDeleteComment(dert.id, c.id);
+                          }} style={{
+                            background:"none", border:"1px solid #ffcccc",
+                            cursor:"pointer", padding:"2px 8px", fontSize:10, fontWeight:700,
+                            color:"#c0392b", fontFamily:"'Inter',system-ui,sans-serif" }}>Sil</button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <p style={{ margin:"0 0 10px 34px", fontSize:13, lineHeight:1.78, wordBreak:"break-word" }}>{c.text}</p>
-                  )}
-                  {!isEditing && (
-                    <div style={{ paddingLeft:34 }}>
-                      {/* Like + Şikayet row */}
-                      {!owned && user && (
-                        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:8 }}>
+
+                    {/* Derman metni */}
+                    {isEditing ? (
+                      <div>
+                        <textarea value={editText} onChange={e=>setEditText(e.target.value)} rows={3}
+                          style={{ width:"100%", padding:"9px 11px", boxSizing:"border-box",
+                            border:`2px solid ${cardBdr}`, fontFamily:"'Inter',system-ui,sans-serif",
+                            fontSize:13, lineHeight:1.7, resize:"vertical",
+                            background:cardBg, color:fgCard, outline:"none", marginBottom:8 }}
+                          autoFocus/>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <button onClick={saveEdit} style={{ padding:"6px 14px",
+                            background:"#111", color:"#fff", border:"2px solid #111",
+                            cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                            fontSize:11, fontWeight:700 }}>Kaydet</button>
+                          <button onClick={()=>setEditingId(null)} style={{ padding:"6px 14px",
+                            background:cardBg, color:mutedCard, border:`1.5px solid ${subBdr}`,
+                            cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                            fontSize:11 }}>İptal</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ fontSize:14, lineHeight:1.75, margin:"0 0 12px 0",
+                        color: isBest?"rgba(255,255,255,.9)":fgCard, wordBreak:"break-word" }}>
+                        {c.text}
+                      </p>
+                    )}
+
+                    {/* Alt aksiyonlar */}
+                    {!isEditing && (
+                      <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                        {/* Beğeni */}
+                        {user && (
                           <button onClick={()=>onLike(dert.id, c.id)}
                             style={{ display:"flex", alignItems:"center", gap:4,
                               padding:"3px 9px", border:"1.5px solid",
-                              borderColor:(c.likedBy||[]).includes(user.id)?"#111":"#eee",
+                              borderColor:(c.likedBy||[]).includes(user.id)?"#111":"#e0e0e0",
                               background:(c.likedBy||[]).includes(user.id)?"#111":"transparent",
-                              color:(c.likedBy||[]).includes(user.id)?"#fff":"#aaa",
-                              cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
-                              fontSize:10, fontWeight:700, transition:"all .15s" }}>
+                              color:(c.likedBy||[]).includes(user.id)?"#fff":mutedCard,
+                              cursor:"pointer", fontSize:11, fontWeight:700,
+                              transition:"all .15s" }}>
                             👍 {(c.likedBy||[]).length>0 && (c.likedBy||[]).length}
                           </button>
+                        )}
+                        {/* Teşekkür */}
+                        {owned && c.authorId !== user?.id && (
+                          <button onClick={()=>onThank&&onThank(dert.id, c.id, c.authorId)}
+                            style={{ padding:"3px 9px", border:"1.5px solid #d4edda",
+                              background:"transparent", color:"#27ae60",
+                              cursor:"pointer", fontSize:10, fontWeight:700 }}>
+                            🙏 Teşekkür
+                          </button>
+                        )}
+                        {/* Şikayet */}
+                        {user && !isMyComment && (
                           <button onClick={()=>onReport(dert.id, c.id)}
-                            style={{ padding:"3px 8px", border:"1.5px solid #eee",
+                            style={{ padding:"3px 8px", border:"1.5px solid #e0e0e0",
                               background:"transparent", color:"#ddd",
-                              cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
-                              fontSize:10, transition:"color .2s" }}>
+                              cursor:"pointer", fontSize:10, transition:"color .2s" }}>
                             🚩
                           </button>
-                          {/* Teşekkür butonu — sadece dert sahibine görünür */}
-                          {owned && c.authorId !== user?.id && (
-                            <button onClick={()=>onThank&&onThank(dert.id, c.id, c.authorId)}
-                              title="Bu dermanı yazana teşekkür et"
-                              style={{ padding:"3px 9px", border:"1.5px solid #d4edda",
-                                background:"transparent", color:"#27ae60",
-                                cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
-                                fontSize:10, fontWeight:700, transition:"all .15s" }}>
-                              🙏 Teşekkür
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {owned && !dert.solved && !c.ownerRated && !isClosed ? (
-                        <div>
-                          <div style={{ fontSize:9, fontWeight:700, letterSpacing:2,
-                            textTransform:"uppercase", color:"#333", marginBottom:6 }}>Puanla (1–10)</div>
-                          <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)}/>
-                          <div style={{ fontSize:10, color:"#888", marginTop:5 }}>10 puan → dert dermana ulaşır ✦</div>
-                        </div>
-                      ) : c.ownerRated ? (
-                        <ScoreBar value={c.stars} inv={isBest}/>
-                      ) : (
-                        <span style={{ fontSize:11, color:isBest?"rgba(255,255,255,.6)":"#888",
-                          fontStyle:"italic" }}>Sadece dert sahibi puanlayabilir</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                        )}
+                        {/* Puan */}
+                        {c.ownerRated && (
+                          <div style={{ marginLeft:"auto" }}>
+                            <ScoreBar value={c.stars} inv={isBest}/>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-        {/* Yorum kutusu */}
-        <div style={{ marginTop:12, paddingTop:12, borderTop:`1.5px solid ${subBdr}` }}>
-          {!owned && !isClosed && !dert.solved ? (
-            <>
-              <div style={{ display:"flex", gap:8, alignItems:"flex-start", minWidth:0 }}>
-                {user && <div style={{ flexShrink:0, marginTop:2 }}><Av char={user.name[0].toUpperCase()} inv size={30}/></div>}
-                <div style={{ flex:1, minWidth:0 }}>
+                    {/* Puanlama alanı */}
+                    {owned && !dert.solved && !c.ownerRated && !isClosed && !isEditing && (
+                      <div style={{ marginTop:12, padding:"12px 14px",
+                        background: dark?"#1e1e1e":"#fff",
+                        border:`1.5px solid ${dark?"#333":"#e8e8e8"}`,
+                        borderRadius:2 }}>
+                        <div style={{ fontSize:9, fontWeight:800, letterSpacing:2,
+                          textTransform:"uppercase", color:mutedCard, marginBottom:8 }}>
+                          Bu dermanı puanla (1–10)
+                        </div>
+                        <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)}/>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Derman yaz kutusu */}
+              {!owned && !isClosed && !dert.solved && user && (
+                <div style={{ padding:"16px", background:cardBg,
+                  borderTop:`2px dashed ${dark?"#2a2a2a":"#e8e8e8"}` }}>
+                  <div style={{ fontSize:9, fontWeight:800, letterSpacing:2,
+                    textTransform:"uppercase", color:mutedCard, marginBottom:10 }}>
+                    ✦ Dermanını Yaz
+                  </div>
                   <div style={{ position:"relative" }}>
-                  <textarea
-                    ref={taRef}
-                    value={cTexts[dert.id]||""}
-                    onChange={e=>{
-                      const v=e.target.value.slice(0,500);
-                      setCTexts(p=>({...p,[dert.id]:v}));
-                      setCWarns(p=>({...p,[dert.id]:warnMsg(v)}));
-                    }}
-                    onFocus={()=>setTimeout(()=>taRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),300)}
-                    onClick={()=>!user&&onNeedAuth("login")}
-                    readOnly={!user}
-                    placeholder={user?"Derman ol, çözüm öner…":"Derman olmak için giriş yap…"}
-                    rows={3}
-                    style={{ width:"100%", padding:"10px 12px", boxSizing:"border-box",
-                      border:`2px solid ${subBdr}`, fontFamily:"'Inter',system-ui,sans-serif", fontSize:13,
-                      lineHeight:1.7, resize:"vertical", background:cardBg, color:fgCard,
-                      cursor:user?"text":"pointer", outline:"none" }}/>
-                  {user && (
-                    <div style={{
-                      position:"absolute", bottom:8, right:10,
-                      fontSize:10, color: (cTexts[dert.id]||"").length > 450 ? "#c0392b" : "#ccc",
-                      fontFamily:"'Inter',system-ui,sans-serif", pointerEvents:"none"
-                    }}>
+                    <textarea ref={taRef}
+                      value={cTexts[dert.id]||""}
+                      onChange={e=>{
+                        const v=e.target.value.slice(0,500);
+                        setCTexts(p=>({...p,[dert.id]:v}));
+                        setCWarns(p=>({...p,[dert.id]:warnMsg(v)}));
+                      }}
+                      onFocus={()=>setTimeout(()=>taRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),300)}
+                      placeholder="Çözüm öner, deneyimini paylaş…"
+                      rows={3}
+                      style={{ width:"100%", padding:"11px 13px", boxSizing:"border-box",
+                        border:`2px solid ${subBdr}`, fontFamily:"'Inter',system-ui,sans-serif",
+                        fontSize:14, lineHeight:1.7, resize:"vertical",
+                        background:cardBg, color:fgCard, outline:"none" }}/>
+                    <div style={{ position:"absolute", bottom:8, right:10,
+                      fontSize:10, color:(cTexts[dert.id]||"").length>450?"#c0392b":mutedCard,
+                      pointerEvents:"none" }}>
                       {(cTexts[dert.id]||"").length}/500
                     </div>
-                  )}
                   </div>
                   {cWarns[dert.id] && (
-                    <div style={{ fontSize:11, color:"#c0392b", marginTop:4, fontWeight:700 }}>{cWarns[dert.id]}</div>
-                  )}
-                  {user && (
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:8, gap:8 }}>
-                      {/* Anonim toggle */}
-                      <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer",
-                        fontSize:11, color:mutedCard, userSelect:"none" }}>
-                        <input type="checkbox"
-                          checked={!!(cAnon&&cAnon[dert.id])}
-                          onChange={e=>setCAnon&&setCAnon(p=>({...p,[dert.id]:e.target.checked}))}
-                          style={{ width:14, height:14, cursor:"pointer" }}/>
-                        Anonim yaz
-                      </label>
-                      <button onClick={()=>user?onComment(dert.id):onNeedAuth("login")}
-                        style={{ padding:"8px 20px", background:"#111", color:"#fff",
-                          border:"2px solid #111", cursor:"pointer",
-                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700 }}>
-                        Derman Yaz →
-                      </button>
+                    <div style={{ fontSize:11, color:"#c0392b", marginTop:4, fontWeight:700 }}>
+                      {cWarns[dert.id]}
                     </div>
                   )}
-                  {!user && (
-                    <div style={{ display:"flex", justifyContent:"flex-end", marginTop:6 }}>
-                      <button onClick={()=>onNeedAuth("login")}
-                        style={{ padding:"8px 20px", background:"#111", color:"#fff",
-                          border:"2px solid #111", cursor:"pointer",
-                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700 }}>
-                        Derman Yaz →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {!user && (
-                <div style={{ fontSize:11, color:"#888", marginTop:6, textAlign:"center" }}>
-                  <span onClick={()=>onNeedAuth("login")} style={{ color:"#111",fontWeight:700,cursor:"pointer",textDecoration:"underline" }}>Giriş yap</span>
-                  {" "}veya{" "}
-                  <span onClick={()=>onNeedAuth("register")} style={{ color:"#111",fontWeight:700,cursor:"pointer",textDecoration:"underline" }}>üye ol</span>
+                  <div style={{ display:"flex", alignItems:"center",
+                    justifyContent:"space-between", marginTop:10 }}>
+                    <label style={{ display:"flex", alignItems:"center", gap:6,
+                      cursor:"pointer", fontSize:12, color:mutedCard, userSelect:"none" }}>
+                      <input type="checkbox"
+                        checked={!!(cAnon&&cAnon[dert.id])}
+                        onChange={e=>setCAnon&&setCAnon(p=>({...p,[dert.id]:e.target.checked}))}
+                        style={{ width:14, height:14, cursor:"pointer" }}/>
+                      Anonim yaz
+                    </label>
+                    <button onClick={()=>onComment(dert.id)}
+                      style={{ padding:"9px 22px", background:"#111", color:"#fff",
+                        border:"2px solid #111", cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif",
+                        fontSize:13, fontWeight:700, letterSpacing:.3 }}>
+                      Derman Yaz →
+                    </button>
+                  </div>
                 </div>
               )}
-            </>
-          ) : (
-            <div style={{ fontSize:12, color:"#888", fontStyle:"italic", textAlign:"center", padding:"8px 0" }}>
+            </div>
+          )}
+
+          {/* Kapalı/Çözülmüş mesajı */}
+          {(dert.solved || isClosed) && (
+            <div style={{ padding:"10px 20px",
+              background: dark?"#1a1a1a":"#f8f8f8",
+              borderTop:`1px solid ${dark?"#2a2a2a":"#ebebeb"}`,
+              fontSize:12, color:mutedCard, fontStyle:"italic", textAlign:"center" }}>
               {dert.solved
                 ? "⭐ Bu dert dermana ulaştı — derman yazılamaz"
-                : isClosed
-                ? "🔒 Bu dert kapatıldı — yeni derman yazılamaz"
-                : "Bu senin derdin — sadece başkaları derman yazabilir"}
+                : "🔒 Bu dert kapatıldı — yeni derman yazılamaz"}
+            </div>
+          )}
+
+          {/* Giriş yapmamış kullanıcı */}
+          {!owned && !isClosed && !dert.solved && !user && (
+            <div style={{ padding:"14px 20px",
+              background: dark?"#1a1a1a":"#f8f8f8",
+              borderTop:`1px solid ${dark?"#2a2a2a":"#ebebeb"}`,
+              textAlign:"center", fontSize:12, color:mutedCard }}>
+              <span onClick={()=>onNeedAuth("login")}
+                style={{ color:fgCard, fontWeight:700, cursor:"pointer",
+                  textDecoration:"underline" }}>Giriş yap</span>
+              {" "}veya{" "}
+              <span onClick={()=>onNeedAuth("register")}
+                style={{ color:fgCard, fontWeight:700, cursor:"pointer",
+                  textDecoration:"underline" }}>üye ol</span>
+              {" "}— derman yaz
+            </div>
+          )}
+
+          {/* Derman yaz butonu — kapalı haldeyken */}
+          {!owned && !isClosed && !dert.solved && user && !isOpen && (
+            <div style={{ padding:"10px 20px",
+              background: dark?"#1a1a1a":"#f8f8f8",
+              borderTop:`1px solid ${dark?"#2a2a2a":"#ebebeb"}` }}>
+              <button onClick={()=>setOpenId(dert.id)}
+                style={{ width:"100%", padding:"10px", background:"transparent",
+                  color:fgCard, border:`1.5px dashed ${subBdr}`,
+                  cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                  fontSize:12, fontWeight:600 }}>
+                + Derman yaz
+              </button>
             </div>
           )}
         </div>
@@ -1207,12 +1224,12 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
 
 /* ─── Kategori uzmanlık unvanları ─────────────────────────── */
 const CAT_TITLES = {
-  İş:         ["İş Yeri Danışmanı","Kariyer Koçu","İş Hayatı Ustası"],
-  Aile:       ["Aile Dostu","Aile Danışmanı","Aile Bilgesi"],
-  Aşk:        ["Kalp Rehberi","Aşk Danışmanı","Aşk Ustası"],
-  Arkadaşlık: ["Dost Eli","Arkadaşlık Rehberi","Dostluk Bilgesi"],
-  Sağlık:     ["Can Dostu","Sağlık Danışmanı","Sağlık Bilgesi"],
-  Para:        ["Bütçe Dostu","Para Danışmanı","Finans Uzmanı"],
+  "İş":         ["İş Yeri Danışmanı","Kariyer Koçu","İş Hayatı Ustası"],
+  "Aile":       ["Aile Dostu","Aile Danışmanı","Aile Bilgesi"],
+  "Aşk":        ["Kalp Rehberi","Aşk Danışmanı","Aşk Ustası"],
+  "Arkadaşlık": ["Dost Eli","Arkadaşlık Rehberi","Dostluk Bilgesi"],
+  "Sağlık":     ["Can Dostu","Sağlık Danışmanı","Sağlık Bilgesi"],
+  "Para":       ["Bütçe Dostu","Para Danışmanı","Finans Uzmanı"],
 };
 function CSS() {
   return (
