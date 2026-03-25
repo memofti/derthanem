@@ -325,7 +325,7 @@ function StarPicker({ onChange }) {
 }
 
 /* ─── Auth Modal ──────────────────────────────────────────── */
-function AuthModal({ mode, onClose, onAuth }) {
+function AuthModal({ mode, onClose, onAuth, onVerifyEmail }) {
   const [tab, setTab] = useState(mode);
   const [f, setF] = useState({ name:"", email:"", password:"", gender:"female" });
   const [err, setErr] = useState("");
@@ -360,6 +360,14 @@ function AuthModal({ mode, onClose, onAuth }) {
       if (error) { setErr(error.message); setLoading(false); return; }
       const { error: pe } = await supabase.from("profiles").insert({ id: data.user.id, name: f.name.trim(), gender: f.gender });
       if (pe) { setErr(pe.message); setLoading(false); return; }
+      // Email doğrulama gerekiyorsa mesaj göster
+      if (data.user && !data.user.confirmed_at) {
+        setLoading(false);
+        setErr(""); 
+        // AuthModal'ı kapat, email doğrulama mesajı göster
+        onVerifyEmail(f.email.trim());
+        return;
+      }
       onAuth({ id: data.user.id, name: f.name.trim(), gender: f.gender, email: f.email.trim(), registeredAt: Date.now() });
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: f.email.trim(), password: f.password });
@@ -480,6 +488,80 @@ function AuthModal({ mode, onClose, onAuth }) {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Şifre Sıfırlama Ekranı ──────────────────────────────── */
+function ResetPasswordScreen({ onDone }) {
+  const [pw, setPw]       = useState("");
+  const [pw2, setPw2]     = useState("");
+  const [err, setErr]     = useState("");
+  const [ok, setOk]       = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (pw.length < 6) { setErr("Şifre en az 6 karakter olmalı."); return; }
+    if (pw !== pw2)    { setErr("Şifreler eşleşmiyor."); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setLoading(false);
+    if (error) { setErr(error.message); return; }
+    setOk(true);
+    setTimeout(onDone, 2000);
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#f7f7f5",
+      fontFamily:"'Inter',system-ui,sans-serif",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"#fff", border:"2px solid #111", padding:"36px 32px",
+        maxWidth:400, width:"100%", boxShadow:"6px 6px 0 #111" }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:4, textTransform:"uppercase",
+          color:"#aaa", marginBottom:8 }}>Derthanem</div>
+        <div style={{ fontSize:22, fontWeight:900, marginBottom:24,
+          fontFamily:"'Playfair Display',Georgia,serif" }}>Yeni Şifre Belirle</div>
+
+        {ok ? (
+          <div style={{ textAlign:"center", padding:"20px 0" }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>✅</div>
+            <div style={{ fontWeight:700, fontSize:16 }}>Şifren güncellendi!</div>
+            <div style={{ color:"#888", fontSize:12, marginTop:8 }}>
+              Giriş sayfasına yönlendiriliyorsun...
+            </div>
+          </div>
+        ) : (<>
+          {err && (
+            <div style={{ background:"#fff3f3", border:"2px solid #c0392b",
+              padding:"10px 12px", marginBottom:12, fontSize:12,
+              color:"#c0392b", fontWeight:700 }}>⚠ {err}</div>
+          )}
+          <label style={{ fontSize:10, fontWeight:700, letterSpacing:2,
+            textTransform:"uppercase", color:"#666", display:"block", marginBottom:5 }}>
+            Yeni Şifre
+          </label>
+          <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
+            placeholder="En az 6 karakter"
+            style={{ width:"100%", padding:"11px 13px", marginBottom:12,
+              boxSizing:"border-box", border:"2px solid #ddd",
+              fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, outline:"none" }}/>
+          <label style={{ fontSize:10, fontWeight:700, letterSpacing:2,
+            textTransform:"uppercase", color:"#666", display:"block", marginBottom:5 }}>
+            Şifre Tekrar
+          </label>
+          <input type="password" value={pw2} onChange={e=>setPw2(e.target.value)}
+            placeholder="Aynı şifreyi tekrar gir"
+            style={{ width:"100%", padding:"11px 13px", marginBottom:20,
+              boxSizing:"border-box", border:"2px solid #ddd",
+              fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, outline:"none" }}/>
+          <button onClick={handleSave} disabled={loading}
+            style={{ width:"100%", padding:"13px", background:"#111", color:"#fff",
+              border:"2px solid #111", fontFamily:"'Inter',system-ui,sans-serif",
+              fontSize:14, fontWeight:700, cursor:"pointer", boxShadow:"4px 4px 0 #555" }}>
+            {loading ? "Kaydediliyor..." : "Şifremi Güncelle →"}
+          </button>
+        </>)}
       </div>
     </div>
   );
@@ -1358,7 +1440,13 @@ export default function Derthanem() {
   const [showOnboard, setShowOnboard]   = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackType, setFeedbackType] = useState("öneri"); // onboarding turu
+  const [feedbackType, setFeedbackType] = useState("öneri");
+  const [verifyEmail, setVerifyEmail]   = useState(null);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [changePw1, setChangePw1]       = useState("");
+  const [changePw2, setChangePw2]       = useState("");
+  const [changePwErr, setChangePwErr]   = useState("");
+  const [changePwOk, setChangePwOk]     = useState(false); // email doğrulama bekliyor // onboarding turu
 
   const isAdmin = user?.email === ADMIN_EMAIL || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -1390,8 +1478,26 @@ export default function Derthanem() {
   /* ── Oturum kontrolü + veri yükleme ── */
   useEffect(() => {
     loadDerts();
+
+    // URL'de şifre sıfırlama veya email doğrulama token'ı var mı kontrol et
+    const hash = window.location.hash;
+    const search = window.location.search;
+    const isRecovery = hash.includes("type=recovery") || search.includes("type=recovery");
+    const isSignup   = hash.includes("type=signup")   || search.includes("type=signup");
+
+    if (isRecovery) {
+      setScreen("reset_password");
+    } else if (isSignup) {
+      setScreen("email_verified");
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        // Şifre sıfırlama modunda ise profil yükleme
+        if (isRecovery) {
+          setScreen("reset_password");
+          return;
+        }
         const { data: profile } = await supabase
           .from("profiles").select("*").eq("id", session.user.id).single();
         if (profile) {
@@ -1399,6 +1505,10 @@ export default function Derthanem() {
             gender: profile.gender, email: session.user.email,
             registeredAt: new Date(profile.created_at).getTime() });
           setScreen("app");
+          try {
+            const blocked = JSON.parse(localStorage.getItem("derthanem_blocked_"+session.user.id) || "[]");
+            setBlockedUsers(blocked);
+          } catch(e) {}
         }
       }
     });
@@ -1953,12 +2063,77 @@ export default function Derthanem() {
     </div>
   );
 
+  /* ══ ŞİFRE SIFIRLA ══ */
+  if (screen === "reset_password") return (
+    <ResetPasswordScreen
+      onDone={()=>{ window.location.hash=""; setScreen("landing"); }}
+      bg0={bg0} fg={fg} bdr={bdr}
+    />
+  );
+
+  /* ══ EMAİL DOĞRULANDI ══ */
+  if (screen === "email_verified") return (
+    <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"'Inter',system-ui,sans-serif",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <CSS/>
+      <div style={{ background:"#fff", border:"2px solid #111", padding:"48px 32px",
+        maxWidth:400, width:"100%", boxShadow:"6px 6px 0 #111", textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
+        <div style={{ fontSize:22, fontWeight:900, marginBottom:12,
+          fontFamily:"'Playfair Display',Georgia,serif" }}>Email Doğrulandı!</div>
+        <div style={{ fontSize:14, color:"#666", lineHeight:1.7, marginBottom:28 }}>
+          Hesabın aktif. Şimdi giriş yapabilirsin.
+        </div>
+        <button onClick={()=>{ window.location.hash=""; setScreen("landing"); setAuth("login"); }}
+          style={{ background:"#111", color:"#fff", border:"2px solid #111",
+            padding:"12px 32px", cursor:"pointer",
+            fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
+            boxShadow:"3px 3px 0 #555" }}>
+          Giriş Yap →
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ══ EMAİL DOĞRULAMA BEKLİYOR ══ */
+  if (verifyEmail) return (
+    <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"'Inter',system-ui,sans-serif",
+      display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <CSS/>
+      <div style={{ background:"#fff", border:"2px solid #111", padding:"48px 32px",
+        maxWidth:400, width:"100%", boxShadow:"6px 6px 0 #111", textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>📧</div>
+        <div style={{ fontSize:22, fontWeight:900, marginBottom:12,
+          fontFamily:"'Playfair Display',Georgia,serif" }}>Email'ini Doğrula</div>
+        <div style={{ fontSize:14, color:"#666", lineHeight:1.8, marginBottom:8 }}>
+          <strong>{verifyEmail}</strong> adresine doğrulama maili gönderdik.
+        </div>
+        <div style={{ fontSize:13, color:"#888", lineHeight:1.7, marginBottom:28 }}>
+          Maildeki linke tıklayarak hesabını aktifleştir, sonra giriş yapabilirsin.
+        </div>
+        <button onClick={()=>{ setVerifyEmail(null); setAuth("login"); }}
+          style={{ background:"#111", color:"#fff", border:"2px solid #111",
+            padding:"12px 32px", cursor:"pointer",
+            fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
+            boxShadow:"3px 3px 0 #555", marginBottom:12, width:"100%" }}>
+          Giriş Yap →
+        </button>
+        <button onClick={()=>setVerifyEmail(null)}
+          style={{ background:"transparent", color:"#888", border:"1.5px solid #ddd",
+            padding:"10px 32px", cursor:"pointer",
+            fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, width:"100%" }}>
+          Geri Dön
+        </button>
+      </div>
+    </div>
+  );
+
   if (screen==="landing") return (
     <>
       <CSS/>
       <Toast toast={toast}/>
       <Landing onDert={()=>needAuth("register")} onDerman={()=>setScreen("app")}/>
-      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth}/>}
+      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth} onVerifyEmail={(email)=>{setVerifyEmail(email);setAuth(null);}}/>}
     </>
   );
 
@@ -2274,6 +2449,10 @@ export default function Derthanem() {
         </>}
 
         <div style={{ marginTop:20, display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+          <button onClick={()=>setShowChangePw(p=>!p)} style={{ background:"#fff", color:"#111",
+            border:"2px solid #111", padding:"10px 24px",
+            fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
+            letterSpacing:1 }}>🔑 Şifre Değiştir</button>
           <button onClick={handleLogout} style={{ background:"#fff", color:"#666",
             border:"2px solid #ddd", padding:"10px 24px",
             fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
@@ -2283,9 +2462,60 @@ export default function Derthanem() {
             fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
             letterSpacing:1 }}>Hesabı Sil</button>
         </div>
+
+        {/* Şifre değiştir formu */}
+        {showChangePw && (
+          <div style={{ marginTop:16, background:"#f9f9f9", border:"2px solid #111",
+            padding:"24px", maxWidth:400, margin:"16px auto 0" }}>
+            <div style={{ fontSize:13, fontWeight:800, marginBottom:16 }}>Şifre Değiştir</div>
+            {changePwErr && (
+              <div style={{ background:"#fff3f3", border:"1.5px solid #c0392b",
+                padding:"8px 12px", marginBottom:12, fontSize:12, color:"#c0392b", fontWeight:700 }}>
+                ⚠ {changePwErr}
+              </div>
+            )}
+            {changePwOk && (
+              <div style={{ background:"#f0faf0", border:"1.5px solid #27ae60",
+                padding:"8px 12px", marginBottom:12, fontSize:12, color:"#27ae60", fontWeight:700 }}>
+                ✅ Şifren güncellendi!
+              </div>
+            )}
+            <input type="password" placeholder="Yeni şifre (en az 6 karakter)"
+              value={changePw1} onChange={e=>setChangePw1(e.target.value)}
+              style={{ width:"100%", padding:"10px 13px", marginBottom:10, boxSizing:"border-box",
+                border:"2px solid #ddd", fontFamily:"'Inter',system-ui,sans-serif",
+                fontSize:13, outline:"none" }}/>
+            <input type="password" placeholder="Şifreyi tekrar gir"
+              value={changePw2} onChange={e=>setChangePw2(e.target.value)}
+              style={{ width:"100%", padding:"10px 13px", marginBottom:14, boxSizing:"border-box",
+                border:"2px solid #ddd", fontFamily:"'Inter',system-ui,sans-serif",
+                fontSize:13, outline:"none" }}/>
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={async()=>{
+                setChangePwErr(""); setChangePwOk(false);
+                if (changePw1.length < 6) { setChangePwErr("En az 6 karakter olmalı."); return; }
+                if (changePw1 !== changePw2) { setChangePwErr("Şifreler eşleşmiyor."); return; }
+                const { error } = await supabase.auth.updateUser({ password: changePw1 });
+                if (error) { setChangePwErr(error.message); return; }
+                setChangePwOk(true); setChangePw1(""); setChangePw2("");
+                setTimeout(()=>setShowChangePw(false), 2000);
+              }} style={{ flex:1, padding:"10px", background:"#111", color:"#fff",
+                border:"2px solid #111", cursor:"pointer",
+                fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
+                Güncelle →
+              </button>
+              <button onClick={()=>{setShowChangePw(false);setChangePwErr("");setChangePwOk(false);}}
+                style={{ padding:"10px 16px", background:"#fff", color:"#666",
+                  border:"1.5px solid #ddd", cursor:"pointer",
+                  fontFamily:"'Inter',system-ui,sans-serif", fontSize:12 }}>
+                İptal
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth}/>}
+      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth} onVerifyEmail={(email)=>{setVerifyEmail(email);setAuth(null);}}/>}
     </div>
   );
 
@@ -2942,7 +3172,7 @@ export default function Derthanem() {
         </div>
       )}
 
-      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth}/>}
+      {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth} onVerifyEmail={(email)=>{setVerifyEmail(email);setAuth(null);}}/>}
     </div>
   );
 }
