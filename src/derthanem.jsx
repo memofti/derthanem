@@ -343,7 +343,7 @@ function AuthModal({ mode, onClose, onAuth }) {
     if (!f.email.trim()) { setErr("E-posta adresi girin."); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(f.email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: "https://derthanem.vercel.app",
     });
     setLoading(false);
     if (error) { setErr(error.message); return; }
