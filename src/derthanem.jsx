@@ -1446,7 +1446,10 @@ export default function Derthanem() {
   const [changePw1, setChangePw1]       = useState("");
   const [changePw2, setChangePw2]       = useState("");
   const [changePwErr, setChangePwErr]   = useState("");
-  const [changePwOk, setChangePwOk]     = useState(false); // email doğrulama bekliyor // onboarding turu
+  const [changePwOk, setChangePwOk]     = useState(false);
+  const [profileTab, setProfileTab]     = useState("dertlerim"); // dertlerim | bildirimler | ayarlar
+  const [notifs, setNotifs]             = useState([]);
+  const [notifsLoading, setNotifsLoading] = useState(false); // email doğrulama bekliyor // onboarding turu
 
   const isAdmin = user?.email === ADMIN_EMAIL || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
@@ -1597,6 +1600,25 @@ export default function Derthanem() {
     setUser(null); setScreen("landing"); setDraft(null);
   };
 
+  const loadNotifs = async () => {
+    if (!user) return;
+    setNotifsLoading(true);
+    const { data } = await supabase
+      .from("notifications")
+      .select("*, profiles!notifications_from_user_id_fkey(name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setNotifs(data || []);
+    setNotifsLoading(false);
+  };
+
+  const markAllRead = async () => {
+    await supabase.from("notifications")
+      .update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+    setNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+  };
+
   const handleDeleteAccount = async () => {
     if (!window.confirm("Hesabını silmek istediğine emin misin?\n\nTüm dertlerin ve dermanların silinecek. Bu işlem geri alınamaz.")) return;
     const confirmText = window.prompt("Onaylamak için 'SİL' yaz:");
@@ -1672,7 +1694,20 @@ export default function Derthanem() {
       setDerts(prev=>prev.map(d=>d.id!==dertId?d:{
         ...d, comments:d.comments.filter(c=>c.id!==tempId)
       }));
-    } else { await loadDerts(); }
+    } else {
+      // Dert sahibine bildirim gönder (kendi dertine derman yazıyorsa bildirim yok)
+      const dert = derts.find(d=>d.id===dertId);
+      if (dert && dert.authorId !== user.id && !isAnon) {
+        await supabase.from("notifications").insert({
+          user_id: dert.authorId,
+          type: "new_derman",
+          dert_id: dertId,
+          from_user_id: user.id,
+          message: (user.name + " dertine derman yazdı: \"" + text.slice(0,60) + (text.length>60?"...":"") + "\""),
+        });
+      }
+      await loadDerts();
+    }
   };
 
   const handleEdit = async (dertId, commentId, newText) => {
@@ -2402,114 +2437,218 @@ export default function Derthanem() {
           </div>
         </div>
 
-        {/* My Derts */}
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
-          color:"#777", marginBottom:14 }}>Dertlerim ({myDerts.length})</div>
-
-        {myDerts.length===0 ? (
-          <div style={{ border:"2px dashed #ddd", padding:"32px", textAlign:"center",
-            color:"#888", fontSize:13, marginBottom:24 }}>
-            Henüz dert paylaşmadın<br/>
-            <span onClick={()=>{setScreen("app");setShowPost(true);}}
-              style={{ fontSize:12, color:"#111", fontWeight:700, cursor:"pointer",
-                textDecoration:"underline", display:"inline-block", marginTop:8 }}>
-              İlk derdini paylaş →
-            </span>
-          </div>
-        ) : myDerts.map((d,i) => <DertCard key={d.id} dert={d} i={i}
-            user={user} openId={openId} setOpenId={setOpenId}
-            cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
-            onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-            onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark} userAvatar={userAvatar}/>)}
-
-        {/* My Comments */}
-        {myComments.length>0 && <>
-          <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
-            color:"#777", marginBottom:14, marginTop:24 }}>Dermanlarım ({myComments.length})</div>
-          {myComments.map(c => (
-            <div key={c.id} style={{ background:"#fff", border:"2px solid #111",
-              padding:"14px 18px", marginBottom:10 }}>
-              <div style={{ fontSize:9, color:"#777", fontWeight:700, letterSpacing:1.5,
-                textTransform:"uppercase", marginBottom:8,
-                wordBreak:"break-word" }}>"{c.dertTitle}"</div>
-              <p style={{ margin:"0 0 10px", fontSize:13, lineHeight:1.75,
-                wordBreak:"break-word" }}>{c.text}</p>
-              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-                {c.ownerRated ? (
-                  <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
-                    <ScoreBar value={c.stars} inv={false}/>
-                    {c.badge && <Badge type={c.badge}/>}
-                  </div>
-                ) : (
-                  <span style={{ fontSize:11, color:"#888", fontStyle:"italic" }}>Henüz puanlanmadı</span>
-                )}
-              </div>
-            </div>
+        {/* Profil Tabları */}
+        <div style={{ display:"flex", gap:0, marginBottom:24, border:`2px solid ${bdr}`, overflow:"hidden" }}>
+          {[
+            ["dertlerim", "📋 Dertlerim"],
+            ["bildirimler", "🔔 Bildirimler"],
+            ["ayarlar", "⚙️ Ayarlar"],
+          ].map(([id, label]) => (
+            <button key={id} onClick={()=>{
+              setProfileTab(id);
+              if (id==="bildirimler") loadNotifs();
+            }} style={{ flex:1, padding:"11px 8px",
+              background: profileTab===id ? "#111" : bg0,
+              color: profileTab===id ? "#fff" : muted,
+              border:"none", borderRight: id!=="ayarlar" ? `2px solid ${bdr}` : "none",
+              cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+              fontSize:11, fontWeight:700, transition:"all .15s" }}>
+              {label}
+            </button>
           ))}
-        </>}
-
-        <div style={{ marginTop:20, display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-          <button onClick={()=>setShowChangePw(p=>!p)} style={{ background:"#fff", color:"#111",
-            border:"2px solid #111", padding:"10px 24px",
-            fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
-            letterSpacing:1 }}>🔑 Şifre Değiştir</button>
-          <button onClick={handleLogout} style={{ background:"#fff", color:"#666",
-            border:"2px solid #ddd", padding:"10px 24px",
-            fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
-            letterSpacing:1 }}>Çıkış Yap</button>
-          <button onClick={handleDeleteAccount} style={{ background:"#fff", color:"#c0392b",
-            border:"2px solid #ffcccc", padding:"10px 24px",
-            fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, cursor:"pointer", fontWeight:700,
-            letterSpacing:1 }}>Hesabı Sil</button>
         </div>
 
-        {/* Şifre değiştir formu */}
-        {showChangePw && (
-          <div style={{ marginTop:16, background:"#f9f9f9", border:"2px solid #111",
-            padding:"24px", maxWidth:400, margin:"16px auto 0" }}>
-            <div style={{ fontSize:13, fontWeight:800, marginBottom:16 }}>Şifre Değiştir</div>
-            {changePwErr && (
-              <div style={{ background:"#fff3f3", border:"1.5px solid #c0392b",
-                padding:"8px 12px", marginBottom:12, fontSize:12, color:"#c0392b", fontWeight:700 }}>
-                ⚠ {changePwErr}
+        {/* ── DERTLERİM ── */}
+        {profileTab === "dertlerim" && <>
+          <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
+            color:muted, marginBottom:14 }}>Dertlerim ({myDerts.length})</div>
+
+          {myDerts.length===0 ? (
+            <div style={{ border:`2px dashed ${bdr}`, padding:"32px", textAlign:"center",
+              color:muted, fontSize:13, marginBottom:24 }}>
+              Henüz dert paylaşmadın<br/>
+              <span onClick={()=>{setScreen("app");setShowPost(true);}}
+                style={{ fontSize:12, color:fg, fontWeight:700, cursor:"pointer",
+                  textDecoration:"underline", display:"inline-block", marginTop:8 }}>
+                İlk derdini paylaş →
+              </span>
+            </div>
+          ) : myDerts.map((d,i) => <DertCard key={d.id} dert={d} i={i}
+              user={user} openId={openId} setOpenId={setOpenId}
+              cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
+              onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
+              onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark} userAvatar={userAvatar}/>)}
+
+          {myComments.length>0 && <>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
+              color:muted, marginBottom:14, marginTop:24 }}>Dermanlarım ({myComments.length})</div>
+            {myComments.map(c => (
+              <div key={c.id} style={{ background:bg0, border:`2px solid ${bdr}`,
+                padding:"14px 18px", marginBottom:10 }}>
+                <div style={{ fontSize:9, color:muted, fontWeight:700, letterSpacing:1.5,
+                  textTransform:"uppercase", marginBottom:8, wordBreak:"break-word" }}>"{c.dertTitle}"</div>
+                <p style={{ margin:"0 0 10px", fontSize:13, lineHeight:1.75,
+                  wordBreak:"break-word", color:fg }}>{c.text}</p>
+                <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                  {c.ownerRated ? (
+                    <div style={{ display:"flex", alignItems:"center", gap:10, flex:1, minWidth:0 }}>
+                      <ScoreBar value={c.stars} inv={false}/>
+                      {c.badge && <Badge type={c.badge}/>}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize:11, color:muted, fontStyle:"italic" }}>Henüz puanlanmadı</span>
+                  )}
+                </div>
               </div>
-            )}
-            {changePwOk && (
-              <div style={{ background:"#f0faf0", border:"1.5px solid #27ae60",
-                padding:"8px 12px", marginBottom:12, fontSize:12, color:"#27ae60", fontWeight:700 }}>
-                ✅ Şifren güncellendi!
+            ))}
+          </>}
+        </>}
+
+        {/* ── BİLDİRİMLER ── */}
+        {profileTab === "bildirimler" && (
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
+                textTransform:"uppercase", color:muted }}>
+                Bildirimler ({notifs.filter(n=>!n.is_read).length} okunmamış)
               </div>
-            )}
-            <input type="password" placeholder="Yeni şifre (en az 6 karakter)"
-              value={changePw1} onChange={e=>setChangePw1(e.target.value)}
-              style={{ width:"100%", padding:"10px 13px", marginBottom:10, boxSizing:"border-box",
-                border:"2px solid #ddd", fontFamily:"'Inter',system-ui,sans-serif",
-                fontSize:13, outline:"none" }}/>
-            <input type="password" placeholder="Şifreyi tekrar gir"
-              value={changePw2} onChange={e=>setChangePw2(e.target.value)}
-              style={{ width:"100%", padding:"10px 13px", marginBottom:14, boxSizing:"border-box",
-                border:"2px solid #ddd", fontFamily:"'Inter',system-ui,sans-serif",
-                fontSize:13, outline:"none" }}/>
-            <div style={{ display:"flex", gap:8 }}>
-              <button onClick={async()=>{
-                setChangePwErr(""); setChangePwOk(false);
-                if (changePw1.length < 6) { setChangePwErr("En az 6 karakter olmalı."); return; }
-                if (changePw1 !== changePw2) { setChangePwErr("Şifreler eşleşmiyor."); return; }
-                const { error } = await supabase.auth.updateUser({ password: changePw1 });
-                if (error) { setChangePwErr(error.message); return; }
-                setChangePwOk(true); setChangePw1(""); setChangePw2("");
-                setTimeout(()=>setShowChangePw(false), 2000);
-              }} style={{ flex:1, padding:"10px", background:"#111", color:"#fff",
-                border:"2px solid #111", cursor:"pointer",
-                fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
-                Güncelle →
-              </button>
-              <button onClick={()=>{setShowChangePw(false);setChangePwErr("");setChangePwOk(false);}}
-                style={{ padding:"10px 16px", background:"#fff", color:"#666",
-                  border:"1.5px solid #ddd", cursor:"pointer",
-                  fontFamily:"'Inter',system-ui,sans-serif", fontSize:12 }}>
-                İptal
-              </button>
+              {notifs.some(n=>!n.is_read) && (
+                <button onClick={markAllRead}
+                  style={{ fontSize:11, color:muted, background:"none", border:"none",
+                    cursor:"pointer", textDecoration:"underline" }}>
+                  Tümünü okundu işaretle
+                </button>
+              )}
+            </div>
+
+            {notifsLoading ? (
+              <div style={{ textAlign:"center", padding:40, color:muted }}>Yükleniyor...</div>
+            ) : notifs.length === 0 ? (
+              <div style={{ border:`2px dashed ${bdr}`, padding:40, textAlign:"center",
+                color:muted, fontSize:13 }}>
+                <div style={{ fontSize:36, marginBottom:12 }}>🔔</div>
+                Henüz bildirim yok
+              </div>
+            ) : notifs.map(n => (
+              <div key={n.id} onClick={async()=>{
+                if (!n.is_read) {
+                  await supabase.from("notifications").update({is_read:true}).eq("id",n.id);
+                  setNotifs(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x));
+                }
+                if (n.dert_id) { setScreen("app"); setTab("feed"); setOpenId(n.dert_id); }
+              }} style={{
+                background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
+                border: `1.5px solid ${n.is_read ? bdr : "#27ae60"}`,
+                borderLeft: `4px solid ${n.is_read ? bdr : "#27ae60"}`,
+                padding:"14px 16px", marginBottom:8, cursor:"pointer",
+                transition:"all .15s"
+              }}>
+                <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                  <span style={{ fontSize:20, flexShrink:0 }}>
+                    {n.type==="new_derman"?"💬":n.type==="thanks"?"🙏":n.type==="rated"?"⭐":"🔔"}
+                  </span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, color:fg, lineHeight:1.5, marginBottom:4 }}>
+                      {n.message}
+                    </div>
+                    <div style={{ fontSize:10, color:muted }}>
+                      {new Date(n.created_at).toLocaleString("tr-TR")}
+                      {n.dert_id && <span style={{ marginLeft:8, color:fg, fontWeight:700 }}>→ Derte git</span>}
+                    </div>
+                  </div>
+                  {!n.is_read && (
+                    <div style={{ width:8, height:8, borderRadius:"50%",
+                      background:"#27ae60", flexShrink:0, marginTop:4 }}/>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── AYARLAR ── */}
+        {profileTab === "ayarlar" && (
+          <div>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
+              textTransform:"uppercase", color:muted, marginBottom:16 }}>Hesap Ayarları</div>
+
+            {/* Şifre değiştir */}
+            <div style={{ background:bg0, border:`2px solid ${bdr}`, padding:"20px", marginBottom:12 }}>
+              <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:4 }}>🔑 Şifre Değiştir</div>
+              <div style={{ fontSize:11, color:muted, marginBottom:14 }}>Hesap güvenliğin için şifreni düzenli değiştir.</div>
+              {!showChangePw ? (
+                <button onClick={()=>setShowChangePw(true)}
+                  style={{ padding:"9px 20px", background:"#111", color:"#fff",
+                    border:"2px solid #111", cursor:"pointer",
+                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
+                  Şifremi Değiştir
+                </button>
+              ) : (
+                <div>
+                  {changePwErr && (
+                    <div style={{ background:"#fff3f3", border:"1.5px solid #c0392b",
+                      padding:"8px 12px", marginBottom:10, fontSize:12, color:"#c0392b", fontWeight:700 }}>
+                      ⚠ {changePwErr}
+                    </div>
+                  )}
+                  {changePwOk && (
+                    <div style={{ background:"#f0faf0", border:"1.5px solid #27ae60",
+                      padding:"8px 12px", marginBottom:10, fontSize:12, color:"#27ae60", fontWeight:700 }}>
+                      ✅ Şifren güncellendi!
+                    </div>
+                  )}
+                  <input type="password" placeholder="Yeni şifre (en az 6 karakter)"
+                    value={changePw1} onChange={e=>setChangePw1(e.target.value)}
+                    style={{ width:"100%", padding:"10px 13px", marginBottom:8, boxSizing:"border-box",
+                      border:`2px solid ${bdr}`, fontFamily:"'Inter',system-ui,sans-serif",
+                      fontSize:13, outline:"none", background:bg0, color:fg }}/>
+                  <input type="password" placeholder="Şifreyi tekrar gir"
+                    value={changePw2} onChange={e=>setChangePw2(e.target.value)}
+                    style={{ width:"100%", padding:"10px 13px", marginBottom:12, boxSizing:"border-box",
+                      border:`2px solid ${bdr}`, fontFamily:"'Inter',system-ui,sans-serif",
+                      fontSize:13, outline:"none", background:bg0, color:fg }}/>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={async()=>{
+                      setChangePwErr(""); setChangePwOk(false);
+                      if (changePw1.length < 6) { setChangePwErr("En az 6 karakter olmalı."); return; }
+                      if (changePw1 !== changePw2) { setChangePwErr("Şifreler eşleşmiyor."); return; }
+                      const { error } = await supabase.auth.updateUser({ password: changePw1 });
+                      if (error) { setChangePwErr(error.message); return; }
+                      setChangePwOk(true); setChangePw1(""); setChangePw2("");
+                      setTimeout(()=>setShowChangePw(false), 2000);
+                    }} style={{ flex:1, padding:"10px", background:"#111", color:"#fff",
+                      border:"2px solid #111", cursor:"pointer",
+                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
+                      Güncelle →
+                    </button>
+                    <button onClick={()=>{setShowChangePw(false);setChangePwErr("");setChangePwOk(false);}}
+                      style={{ padding:"10px 16px", background:bg0, color:muted,
+                        border:`1.5px solid ${bdr}`, cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif", fontSize:12 }}>
+                      İptal
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Çıkış ve hesap silme */}
+            <div style={{ background:bg0, border:`2px solid ${bdr}`, padding:"20px" }}>
+              <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:14 }}>Hesap İşlemleri</div>
+              <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+                <button onClick={handleLogout}
+                  style={{ padding:"10px 24px", background:bg0, color:muted,
+                    border:`2px solid ${bdr}`, cursor:"pointer",
+                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
+                  Çıkış Yap
+                </button>
+                <button onClick={handleDeleteAccount}
+                  style={{ padding:"10px 24px", background:bg0, color:"#c0392b",
+                    border:"2px solid #ffcccc", cursor:"pointer",
+                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
+                  Hesabı Sil
+                </button>
+              </div>
             </div>
           </div>
         )}
