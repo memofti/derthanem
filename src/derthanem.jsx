@@ -804,8 +804,13 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
   const relateCount = (dert.relatableBy||[]).length;
 
   const handleShare = () => {
-    const text = `"${dert.title}" — derthanem.app/dert/${dert.id}`;
-    navigator.clipboard?.writeText(text).catch(()=>{});
+    const url = `${window.location.origin}${window.location.pathname}#dert-${dert.id}`;
+    const text = `"${dert.title}" — ${url}`;
+    if (navigator.share) {
+      navigator.share({ title: dert.title, text: dert.content.slice(0,100), url }).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(url).catch(()=>{});
+    }
     setCopied(true);
     setTimeout(()=>setCopied(false), 2200);
   };
@@ -1479,7 +1484,9 @@ export default function Derthanem() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [adminReports, setAdminReports] = useState([]);
   const [adminTab, setAdminTab]         = useState("sikayet");
-  const [adminSearch, setAdminSearch]   = useState(""); // sikayet | dertler | dermanlar
+  const [adminSearch, setAdminSearch]   = useState("");
+  const [pwaPrompt, setPwaPrompt]       = useState(null); // PWA install prompt
+  const [showPwa, setShowPwa]           = useState(false); // sikayet | dertler | dermanlar
   const [boardTab, setBoardTab]         = useState("all");
   const [showOnboard, setShowOnboard]   = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -1532,6 +1539,17 @@ export default function Derthanem() {
     const isRecovery = hash.includes("type=recovery") || search.includes("type=recovery");
     const isSignup   = hash.includes("type=signup")   || search.includes("type=signup");
 
+    // Hash routing: #dert-123 formatında direkt dert linki
+    const dertMatch = hash.match(/^#dert-(\d+)$/);
+    if (dertMatch) {
+      const dertId = parseInt(dertMatch[1]);
+      setScreen("app"); setTab("feed"); setOpenId(dertId);
+      setTimeout(()=>{
+        const el = document.getElementById("dert-"+dertId);
+        if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
+      }, 1200);
+    }
+
     if (isRecovery) {
       setScreen("reset_password");
     } else if (isSignup) {
@@ -1571,7 +1589,20 @@ export default function Derthanem() {
     /* Fallback: her 30 saniyede bir yenile */
     const interval = setInterval(loadDerts, 30000);
 
-    return () => { supabase.removeChannel(ch); clearInterval(interval); };
+    // PWA kurulum event'ini yakala
+    const handlePwaPrompt = (e) => {
+      e.preventDefault();
+      setPwaPrompt(e);
+      const dismissed = localStorage.getItem("derthanem_pwa_dismissed");
+      if (!dismissed) setShowPwa(true);
+    };
+    window.addEventListener("beforeinstallprompt", handlePwaPrompt);
+
+    return () => {
+      supabase.removeChannel(ch);
+      clearInterval(interval);
+      window.removeEventListener("beforeinstallprompt", handlePwaPrompt);
+    };
   }, [loadDerts]);
 
   const board = useMemo(() => computeBoard(derts), [derts]);
@@ -1766,6 +1797,15 @@ export default function Derthanem() {
           from_user_id: user.id,
           message: (user.name + " dertine derman yazdı: \"" + text.slice(0,60) + (text.length>60?"...":"") + "\""),
         });
+        // E-posta bildirimi gönder (arka planda, hata olursa sessizce geç)
+        supabase.functions.invoke("send-notification-email", {
+          body: {
+            dert_id: dertId,
+            comment_id: Date.now(),
+            commenter_name: user.name,
+            dert_title: dert.title,
+          }
+        }).catch(()=>{});
       }
       await loadDerts();
     }
@@ -3001,23 +3041,60 @@ export default function Derthanem() {
             </div>
 
             {/* Çıkış ve hesap silme */}
-            <div style={{ background:bg0, border:`1.5px solid ${bdr}`, borderRadius:12, padding:"20px" }}>
+            <div style={{ background:bg0, border:`1.5px solid ${bdr}`, borderRadius:12, padding:"20px", marginBottom:12 }}>
               <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:14 }}>Hesap İşlemleri</div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
                 <button onClick={handleLogout}
                   style={{ padding:"10px 24px", background:bg0, color:muted,
-                    border:`2px solid ${bdr}`, cursor:"pointer",
+                    border:`1.5px solid ${bdr}`, borderRadius:8, cursor:"pointer",
                     fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
                   Çıkış Yap
                 </button>
                 <button onClick={handleDeleteAccount}
-                  style={{ padding:"10px 24px", background:bg0, color:"#c0392b",
-                    border:"2px solid #ffcccc", cursor:"pointer",
+                  style={{ padding:"10px 24px", background:"#fff0f0", color:"#c0392b",
+                    border:"1.5px solid #ffcccc", borderRadius:8, cursor:"pointer",
                     fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700 }}>
                   Hesabı Sil
                 </button>
               </div>
             </div>
+
+            {/* Engellenen kullanıcılar */}
+            {blockedUsers.length > 0 && (
+              <div style={{ background:bg0, border:`1.5px solid ${bdr}`, borderRadius:12, padding:"20px" }}>
+                <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:4 }}>
+                  🚫 Engellenen Kullanıcılar
+                </div>
+                <div style={{ fontSize:11, color:muted, marginBottom:14 }}>
+                  Bu kullanıcıların dertleri feed'de gözükmez.
+                </div>
+                {blockedUsers.map(id => {
+                  // id'den kullanıcı adını bul
+                  const blockedUser = derts.find(d=>d.authorId===id);
+                  const name = blockedUser?.author || id.slice(0,8)+"...";
+                  return (
+                    <div key={id} style={{ display:"flex", alignItems:"center",
+                      justifyContent:"space-between", padding:"8px 0",
+                      borderBottom:`1px solid ${bdr}` }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <Av char={name[0]?.toUpperCase()||"?"} inv={!dark} size={28}/>
+                        <span style={{ fontSize:13, fontWeight:600, color:fg }}>{name}</span>
+                      </div>
+                      <button onClick={()=>{
+                        const updated = blockedUsers.filter(b=>b!==id);
+                        setBlockedUsers(updated);
+                        try { localStorage.setItem("derthanem_blocked_"+user.id, JSON.stringify(updated)); } catch(e) {}
+                        showToast("edit_dert");
+                      }} style={{ padding:"4px 12px", background:"#fff0f0", color:"#c0392b",
+                        border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
+                        Engeli Kaldır
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -3032,6 +3109,46 @@ export default function Derthanem() {
       onClick={()=>showNotifs&&setShowNotifs(false)}>
       <CSS/><Toast toast={toast}/>
       {showOnboard && <Onboarding onClose={()=>setShowOnboard(false)} fg={fg} bg0={bg0} bdr={bdr}/>}
+
+      {/* PWA Kurulum Banner */}
+      {showPwa && (
+        <div style={{ position:"fixed", bottom:80, left:"50%", transform:"translateX(-50%)",
+          zIndex:1000, width:"min(380px, calc(100vw - 32px))",
+          background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+          color:"#fff", borderRadius:16, padding:"16px 18px",
+          boxShadow:"0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08)",
+          display:"flex", alignItems:"center", gap:12,
+          animation:"fu .4s cubic-bezier(.22,1,.36,1)" }}>
+          <div style={{ fontSize:28, flexShrink:0 }}>📱</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontWeight:700, fontSize:13 }}>Ana Ekrana Ekle</div>
+            <div style={{ fontSize:11, opacity:.6, marginTop:2 }}>
+              Derthanem'i uygulama gibi kullan
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={async()=>{
+              if (pwaPrompt) {
+                pwaPrompt.prompt();
+                const { outcome } = await pwaPrompt.userChoice;
+                if (outcome === "accepted") setShowPwa(false);
+              }
+            }} style={{ padding:"7px 14px", background:"#fff", color:"#111",
+              border:"none", borderRadius:8, cursor:"pointer",
+              fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:800 }}>
+              Ekle
+            </button>
+            <button onClick={()=>{
+              setShowPwa(false);
+              localStorage.setItem("derthanem_pwa_dismissed","1");
+            }} style={{ padding:"7px 10px", background:"rgba(255,255,255,.1)",
+              color:"#fff", border:"none", borderRadius:8, cursor:"pointer",
+              fontFamily:"'Inter',system-ui,sans-serif", fontSize:11 }}>
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       <Header/>
 
       <div style={{ maxWidth:700, margin:"0 auto", padding:"0 16px 60px" }}>
@@ -3172,7 +3289,13 @@ export default function Derthanem() {
 
           {/* Haftalık öne çıkan dert */}
           {weeklyHot && !search && cat==="Hepsi" && (
-            <div onClick={()=>setOpenId(weeklyHot.id)}
+            <div onClick={()=>{
+              setOpenId(weeklyHot.id);
+              setTimeout(()=>{
+                const el = document.getElementById("dert-"+weeklyHot.id);
+                if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
+              }, 100);
+            }}
               style={{ background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",
                 color:"#fff", borderRadius:14, padding:"14px 18px", marginTop:16, marginBottom:4,
                 cursor:"pointer", boxShadow:"0 4px 20px rgba(15,52,96,.4)",
