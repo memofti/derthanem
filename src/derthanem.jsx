@@ -780,7 +780,7 @@ function Landing({ onDert, onDerman }) {
 function DertCard({ dert, i=0, user, openId, setOpenId,
                     cTexts, setCTexts, cWarns, setCWarns, cAnon, setCAnon,
                     onRate, onComment, onEdit, onEditDert, onRelate, onClose, onDelete,
-                    onDeleteComment, onBlock, onLike, onReport, onThank, onNeedAuth, isNew=false, dark=false, userAvatar=null }) {
+                    onDeleteComment, onBlock, onLike, onReport, onThank, onNeedAuth, onViewProfile, isNew=false, dark=false, userAvatar=null }) {
   const owned    = user && user.id === dert.authorId;
   const isOpen   = openId === dert.id;
   const cardBg   = dark ? "#1e1e1e" : "#fff";
@@ -907,7 +907,11 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           <Av char={(user && dert.authorId===user.id && userAvatar) ? userAvatar : dert.avatar} inv size={38}/>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", minWidth:0 }}>
-              <span style={{ fontWeight:700, fontSize:14, color:fgCard }}>{dert.author}</span>
+              <span onClick={()=>!dert.isAnon && onViewProfile && onViewProfile({id:dert.authorId, name:dert.author, gender:dert.gender})}
+                style={{ fontWeight:700, fontSize:14, color:fgCard,
+                  cursor: dert.isAnon ? "default" : "pointer",
+                  textDecoration: dert.isAnon ? "none" : "underline",
+                  textDecorationStyle:"dotted" }}>{dert.author}</span>
               <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
                 background:fgCard, color:cardBg, padding:"2px 7px", flexShrink:0 }}>{dert.category}</span>
               {dert.isAnon && <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
@@ -1126,7 +1130,11 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                       <Av char={(user && c.authorId===user.id && userAvatar) ? userAvatar : c.avatar}
                         inv={!isBest} size={28}/>
                       <div>
-                        <span style={{ fontSize:13, fontWeight:700 }}>{c.author}</span>
+                        <span onClick={()=>!c.isAnon && onViewProfile && onViewProfile({id:c.authorId, name:c.author, gender:c.gender})}
+                          style={{ fontSize:13, fontWeight:700,
+                            cursor: c.isAnon?"default":"pointer",
+                            textDecoration: c.isAnon?"none":"underline",
+                            textDecorationStyle:"dotted" }}>{c.author}</span>
                         {c.isAnon && <span style={{ fontSize:9, color:mutedCard,
                           marginLeft:6, fontWeight:600 }}>anonim</span>}
                       </div>
@@ -1237,7 +1245,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
               })}
 
               {/* Derman yaz kutusu — comments listesinin sonunda */}
-              {!owned && !isClosed && !dert.solved && user && (
+              {!owned && !isClosed && !dert.solved && user && !dert.comments.some(c=>c.authorId===user?.id) && (
                 <div style={{ padding:"16px", background:cardBg,
                   borderTop:`2px dashed ${dark?"#2a2a2a":"#e8e8e8"}`,
                   borderRadius:"0 0 12px 12px" }}>
@@ -1298,7 +1306,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           )}
 
           {/* Derman yaz — hiç derman yokken (isOpen ama comments.length===0) */}
-          {isOpen && dert.comments.length===0 && !owned && !isClosed && !dert.solved && user && (
+          {isOpen && dert.comments.length===0 && !owned && !isClosed && !dert.solved && user && !dert.comments.some(c=>c.authorId===user?.id) && (
             <div style={{ background: dark?"#161616":"#f4f4f4",
               borderTop:`1px solid ${dark?"#2a2a2a":"#e8e8e8"}` }}>
               <div style={{ padding:"16px", background:cardBg }}>
@@ -1558,6 +1566,7 @@ export default function Derthanem() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackType, setFeedbackType] = useState("öneri");
   const [verifyEmail, setVerifyEmail]   = useState(null);
+  const [viewProfile, setViewProfile]   = useState(null); // { id, name, gender }
   const [showChangePw, setShowChangePw] = useState(false);
   const [changePw1, setChangePw1]       = useState("");
   const [changePw2, setChangePw2]       = useState("");
@@ -1866,6 +1875,14 @@ export default function Derthanem() {
     }
   }, []);
 
+  const DAILY_COMMENT_LIMIT = 5;
+  const todayComments = useMemo(() => {
+    if (!user) return 0;
+    const today = new Date().toDateString();
+    return derts.flatMap(d=>d.comments)
+      .filter(c => c.authorId===user.id && new Date(c.createdAt||0).toDateString()===today).length;
+  }, [derts, user]);
+
   const handleComment = async (dertId) => {
     if (!user) { needAuth("login"); return; }
     const text = (cTexts[dertId]||"").trim();
@@ -1877,6 +1894,15 @@ export default function Derthanem() {
     }
     if (isDuplicate(user.id,text)) {
       setCWarns(p=>({...p,[dertId]:"⚠ Aynı mesajı tekrar gönderemezsin."})); return;
+    }
+    // Günde 5 derman sınırı
+    if (todayComments >= DAILY_COMMENT_LIMIT) {
+      setCWarns(p=>({...p,[dertId]:"⚠ Bugünlük derman hakkın doldu (günde " + DAILY_COMMENT_LIMIT + " derman)."})); return;
+    }
+    // Aynı derte birden fazla derman yazma engeli
+    const dert = derts.find(d=>d.id===dertId);
+    if (dert && dert.comments.some(c=>c.authorId===user.id)) {
+      setCWarns(p=>({...p,[dertId]:"⚠ Bu derte zaten derman yazdın."})); return;
     }
     setCWarns(p=>({...p,[dertId]:""}));
     const displayName = isAnon ? "Anonim" : user.name;
@@ -2881,7 +2907,7 @@ export default function Derthanem() {
               user={user} openId={openId} setOpenId={setOpenId}
               cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
               onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-              onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark} userAvatar={userAvatar}/>)}
+              onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>)}
 
           {myComments.length>0 && <>
             <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
@@ -3522,7 +3548,7 @@ export default function Derthanem() {
                   user={user} openId={openId} setOpenId={setOpenId}
                   cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
                   onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} dark={dark} userAvatar={userAvatar}/>
+                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>
               </div>
             );
           })}
@@ -3937,6 +3963,81 @@ export default function Derthanem() {
       )}
 
       {auth && <AuthModal mode={auth} onClose={()=>setAuth(null)} onAuth={handleAuth} onVerifyEmail={(email)=>{setVerifyEmail(email);setAuth(null);}}/>}
+
+      {/* Kullanıcı Profil Modalı */}
+      {viewProfile && (
+        <div onClick={()=>setViewProfile(null)}
+          style={{ position:"fixed", inset:0, zIndex:3000,
+            background:"rgba(0,0,0,.6)", backdropFilter:"blur(8px)",
+            display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+          <div onClick={e=>e.stopPropagation()}
+            style={{ background:bg0, borderRadius:16, width:"100%", maxWidth:420,
+              boxShadow:"0 24px 64px rgba(0,0,0,.2)", overflow:"hidden" }}>
+            <div style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+              padding:"28px 24px", display:"flex", alignItems:"center", gap:16 }}>
+              <div style={{ width:56, height:56, borderRadius:"50%",
+                background:"rgba(255,255,255,.15)", border:"2px solid rgba(255,255,255,.3)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:24, fontWeight:800, color:"#fff", flexShrink:0 }}>
+                {viewProfile.name?.[0]?.toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight:800, fontSize:18, color:"#fff" }}>{viewProfile.name}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,.5)", marginTop:3, letterSpacing:1, textTransform:"uppercase" }}>
+                  {viewProfile.gender==="female"?"Kadın":"Erkek"}
+                </div>
+              </div>
+              <button onClick={()=>setViewProfile(null)}
+                style={{ marginLeft:"auto", background:"none", border:"none",
+                  color:"rgba(255,255,255,.4)", cursor:"pointer", fontSize:20, padding:4 }}>✕</button>
+            </div>
+            {(()=>{
+              const theirDerts = derts.filter(d=>d.authorId===viewProfile.id && !d.isAnon);
+              const theirComments = derts.flatMap(d=>d.comments.filter(c=>c.authorId===viewProfile.id && !c.isAnon));
+              const ratedC = theirComments.filter(c=>c.ownerRated);
+              const avg = ratedC.length ? (ratedC.reduce((a,c)=>a+c.stars,0)/ratedC.length).toFixed(1) : null;
+              const gold = ratedC.filter(c=>c.badge==="gold").length;
+              return (
+                <div style={{ padding:"20px 24px" }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+                    {[["Dert",theirDerts.length,"😔"],["Derman",theirComments.length,"💬"],["Altın",gold,"⭐"],["Ort.",avg||"-","📊"]].map(([label,val,icon])=>(
+                      <div key={label} style={{ background:dark?"#1a1a1a":"#f9f9f9",
+                        borderRadius:10, padding:"12px 8px", textAlign:"center", border:`1px solid ${bdr}` }}>
+                        <div style={{ fontSize:16, fontWeight:900, color:fg }}>{icon} {val}</div>
+                        <div style={{ fontSize:9, color:muted, marginTop:3, textTransform:"uppercase", letterSpacing:1 }}>{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {theirDerts.length>0 && (
+                    <div>
+                      <div style={{ fontSize:9, fontWeight:700, letterSpacing:2,
+                        textTransform:"uppercase", color:muted, marginBottom:10 }}>Son Dertleri</div>
+                      {theirDerts.slice(0,3).map(d=>(
+                        <div key={d.id} onClick={()=>{ setViewProfile(null); window.location.hash="dert-"+d.id; }}
+                          style={{ padding:"10px 12px", background:dark?"#1a1a1a":"#f5f5f5",
+                            borderRadius:8, marginBottom:6, cursor:"pointer", border:`1px solid ${bdr}` }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:fg, marginBottom:2 }}>
+                            {d.title.slice(0,60)}{d.title.length>60?"...":""}
+                          </div>
+                          <div style={{ fontSize:10, color:muted }}>{d.comments.length} derman · {d.category}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {viewProfile.id !== user?.id && (
+                    <button onClick={()=>{ handleBlockUser(viewProfile.id); setViewProfile(null); }}
+                      style={{ width:"100%", marginTop:12, padding:"9px", background:"none",
+                        color:"#c0392b", border:"1px solid #ffcccc", borderRadius:8,
+                        cursor:"pointer", fontSize:11, fontWeight:700 }}>
+                      🚫 Engelle
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
