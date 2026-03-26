@@ -302,7 +302,7 @@ function StarPicker({ onChange, dark=false }) {
     <div>
       <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
         {[1,2,3,4,5,6,7,8,9,10].map(n => {
-          const { bg, fg, bdr } = getColor(n);
+          const { bg, fg, bdr, shadow } = getColor(n);
           return (
             <button key={n}
               onMouseEnter={()=>setHov(n)}
@@ -1606,12 +1606,28 @@ export default function Derthanem() {
     const dertMatch = hash.match(/^#dert-(\d+)$/);
     if (dertMatch) {
       const dertId = parseInt(dertMatch[1]);
-      setScreen("app"); setTab("feed"); setOpenId(dertId);
+      setScreen("app"); setTab("feed"); setCat("Hepsi"); setSortBy("new"); setPage(999); setOpenId(dertId);
       setTimeout(()=>{
         const el = document.getElementById("dert-"+dertId);
         if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
-      }, 1200);
+      }, 800);
     }
+
+    // hashchange event — bildirimden hash navigasyonu için
+    const handleHashChange = () => {
+      const m = window.location.hash.match(/^#dert-(\d+)$/);
+      if (m) {
+        const dertId = parseInt(m[1]);
+        setScreen("app"); setTab("feed"); setCat("Hepsi"); setSortBy("new"); setPage(999); setOpenId(dertId);
+        setTimeout(()=>{
+          const el = document.getElementById("dert-"+dertId);
+          if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
+        }, 400);
+        // Hash'i temizle
+        setTimeout(()=>{ window.history.replaceState(null, "", window.location.pathname); }, 1000);
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
 
     if (isRecovery) {
       setScreen("reset_password");
@@ -1629,14 +1645,19 @@ export default function Derthanem() {
         const { data: profile } = await supabase
           .from("profiles").select("*").eq("id", session.user.id).single();
         if (profile) {
-          setUser({ id: session.user.id, name: profile.name,
+          const u = { id: session.user.id, name: profile.name,
             gender: profile.gender, email: session.user.email,
-            registeredAt: new Date(profile.created_at).getTime() });
+            registeredAt: new Date(profile.created_at).getTime() };
+          setUser(u);
           setScreen("app");
           try {
             const blocked = JSON.parse(localStorage.getItem("derthanem_blocked_"+session.user.id) || "[]");
             setBlockedUsers(blocked);
           } catch(e) {}
+          // Bildirimleri arka planda yükle (profil tab sayacı için)
+          supabase.from("notifications").select("id,is_read,dert_id,type,message,created_at,from_user_id,profiles!notifications_from_user_id_fkey(name)")
+            .eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(50)
+            .then(({ data }) => { if (data) setNotifs(data); });
         }
       }
     });
@@ -1665,6 +1686,7 @@ export default function Derthanem() {
       supabase.removeChannel(ch);
       clearInterval(interval);
       window.removeEventListener("beforeinstallprompt", handlePwaPrompt);
+      window.removeEventListener("hashchange", handleHashChange);
     };
   }, [loadDerts]);
 
@@ -1736,6 +1758,10 @@ export default function Derthanem() {
       const seen = localStorage.getItem("derthanem_onboard_"+u.id);
       if (!seen) { setShowOnboard(true); localStorage.setItem("derthanem_onboard_"+u.id, "1"); }
     } catch(e) {}
+    // Bildirimleri yükle
+    supabase.from("notifications").select("id,is_read,dert_id,type,message,created_at,from_user_id,profiles!notifications_from_user_id_fkey(name)")
+      .eq("user_id", u.id).order("created_at", { ascending: false }).limit(50)
+      .then(({ data }) => { if (data) setNotifs(data); });
     await loadDerts();
     const { data } = await supabase
       .from("comments")
@@ -2168,64 +2194,6 @@ export default function Derthanem() {
 
         {user ? (
           <>
-            {/* Bildirim çanı */}
-            {screen==="app" && (
-              <div style={{ position:"relative", flexShrink:0 }}>
-                <button onClick={e=>{
-                  e.stopPropagation();
-                  setShowNotifs(v=>!v);
-                  setSeenNotifs(new Set(notifications.map(n=>n.id)));
-                }} style={{ background:"none", border:`1.5px solid ${bdr}`,
-                  cursor:"pointer", padding:"5px 8px", fontSize:14, color:fg, lineHeight:1 }}>
-                  🔔
-                </button>
-                {unreadCount>0 && (
-                  <span style={{ position:"absolute", top:-5, right:-5,
-                    background:"#c0392b", color:"#fff", borderRadius:"50%",
-                    width:16, height:16, fontSize:9, fontWeight:900,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    border:"2px solid "+bg0, pointerEvents:"none" }}>
-                    {unreadCount>9?"9+":unreadCount}
-                  </span>
-                )}
-                {showNotifs && (
-                  <div style={{ position:"fixed", top:58, right:14, zIndex:500,
-                    background:bg0, border:`2px solid ${bdr}`,
-                    boxShadow:`5px 5px 0 ${dark?"#333":"#111"}`,
-                    width:"min(290px, calc(100vw - 28px))", maxHeight:360, overflowY:"auto",
-                    fontFamily:"'Inter',system-ui,sans-serif" }}>
-                    <div style={{ padding:"10px 14px", borderBottom:`1.5px solid ${bdr}`,
-                      fontSize:10, fontWeight:700, letterSpacing:2,
-                      textTransform:"uppercase", color:muted }}>Bildirimler</div>
-                    {notifications.length===0 ? (
-                      <div style={{ padding:20, textAlign:"center", fontSize:12, color:muted }}>
-                        Henüz bildirim yok</div>
-                    ) : notifications.map(n=>(
-                      <div key={n.id} onClick={()=>{
-                        setShowNotifs(false); setTab("feed");
-                        setCat("Hepsi"); setOpenId(n.dertId);
-                      }} style={{ padding:"10px 14px",
-                        borderBottom:`1px solid ${dark?"#2a2a2a":"#f0f0f0"}`,
-                        cursor:"pointer", background: seenNotifs.has(n.id)
-                          ? bg0 : (dark?"#1e1e1e":"#fffbf0") }}>
-                        <div style={{ fontSize:11, fontWeight:700, color:fg,
-                          marginBottom:3, lineHeight:1.4 }}>
-                          <span style={{ color:muted }}>"{n.dertTitle.slice(0,28)}{n.dertTitle.length>28?"…":""}"</span>
-                          {" "}→ <span style={{ color:fg }}>{n.author}</span>
-                        </div>
-                        <div style={{ fontSize:11, color:muted, lineHeight:1.5 }}>{n.text}</div>
-                        {n.rated && (
-                          <div style={{ fontSize:10, color:"#f39c12", fontWeight:700, marginTop:4 }}>
-                            {n.badge==="gold"?"⭐ Altın Derman":n.badge==="silver"?"✦ Gümüş Derman":`★ ${n.stars}/10`}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Derdini dök */}
             {screen==="app" && (
               <div style={{ position:"relative", flexShrink:0 }}>
@@ -3035,28 +3003,9 @@ export default function Derthanem() {
                   await supabase.from("notifications").update({is_read:true}).eq("id",n.id);
                   setNotifs(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x));
                 }
-                // Derte git — hash routing ile en güvenli yöntem
+                // Derte git — hash değiştir, hashchange handler yakalar
                 if (n.dert_id) {
-                  setCat("Hepsi");
-                  setSearch("");
-                  setSortBy("new");
-                  setPage(999);
-                  setTab("feed");
-                  setScreen("app");
-                  // Derts yüklendikten sonra openId set et ve scroll et
-                  const tryOpen = (attempts=0) => {
-                    const el = document.getElementById("dert-"+n.dert_id);
-                    if (el) {
-                      setOpenId(n.dert_id);
-                      el.scrollIntoView({behavior:"smooth", block:"center"});
-                    } else if (attempts < 15) {
-                      setTimeout(()=>tryOpen(attempts+1), 200);
-                    } else {
-                      // Son çare: openId set et, dert pagedFiltered'a girecek
-                      setOpenId(n.dert_id);
-                    }
-                  };
-                  setTimeout(()=>tryOpen(), 400);
+                  window.location.hash = "dert-"+n.dert_id;
                 }
               }} style={{
                 background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
