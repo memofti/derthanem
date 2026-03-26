@@ -1477,6 +1477,7 @@ export default function Derthanem() {
   const [userAvatar, setUserAvatar] = useState(null);  // seçili emoji avatar
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [adminReports, setAdminReports] = useState([]);
+  const [adminTab, setAdminTab]         = useState("sikayet"); // sikayet | dertler | dermanlar
   const [boardTab, setBoardTab]         = useState("all");
   const [showOnboard, setShowOnboard]   = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -2225,136 +2226,278 @@ export default function Derthanem() {
   /* ══ PROFILE ══ */
   /* ══ ADMIN ══ */
   if (screen==="admin" && isAdmin) return (
-    <div style={{ minHeight:"100vh", background:"#f7f7f5", fontFamily:"'Inter',system-ui,sans-serif" }}>
+    <div style={{ minHeight:"100vh", background:bg1, fontFamily:"'Inter',system-ui,sans-serif", color:fg }}>
       <CSS/><Toast toast={toast}/>
       <Header left={
         <button onClick={()=>setScreen("app")} style={{ background:"none", border:"none",
           cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
           marginRight:4, padding:"4px 8px" }}>← Geri</button>
       }/>
-      <div style={{ maxWidth:800, margin:"0 auto", padding:"28px 16px 60px" }}>
-        <div style={{ fontSize:9, letterSpacing:4, textTransform:"uppercase", color:"#aaa", marginBottom:6 }}>Yönetim Paneli</div>
-        <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px", marginBottom:24 }}>Şikayet Kutusu</div>
+      <div style={{ maxWidth:860, margin:"0 auto", padding:"28px 16px 60px" }}>
+        <div style={{ marginBottom:24 }}>
+          <div style={{ fontSize:9, letterSpacing:4, textTransform:"uppercase", color:muted, marginBottom:6 }}>🔐 Yönetim Paneli</div>
+          <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px", color:fg,
+            fontFamily:"'Playfair Display',Georgia,serif" }}>Admin</div>
+        </div>
 
-        {adminReports.length === 0 ? (
-          <div style={{ border:"2px dashed #ddd", padding:"40px 20px", textAlign:"center", color:"#aaa" }}>
-            <div style={{ fontSize:32, marginBottom:12 }}>✅</div>
-            <div style={{ fontSize:14, fontWeight:700 }}>Şikayet yok — her şey temiz!</div>
-          </div>
-        ) : (
-          adminReports.map(r => {
-            const relatedDert = derts.find(d => d.id === r.dert_id);
-            const relatedComment = relatedDert?.comments?.find(c => c.id === r.comment_id);
-            return (
-            <div key={r.id} style={{ background:"#fff", border:"2px solid #111",
-              padding:"18px 20px", marginBottom:12, boxShadow:"3px 3px 0 #111" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:8 }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:2,
-                    textTransform:"uppercase", color:"#c0392b", marginBottom:8 }}>
-                    🚩 {r.reason}
-                  </div>
-                  <div style={{ fontSize:11, color:"#888", marginBottom:8 }}>
-                    Şikayet eden: <strong>{r.profiles?.name || "?"}</strong> · {new Date(r.created_at).toLocaleString("tr-TR")}
-                  </div>
-                  {relatedDert && (
-                    <div style={{ background:"#f9f9f9", border:"1.5px solid #eee",
-                      padding:"10px 14px", marginBottom:8 }}>
-                      <div style={{ fontSize:10, fontWeight:700, letterSpacing:1,
-                        textTransform:"uppercase", color:"#888", marginBottom:4 }}>Dert</div>
-                      <div style={{ fontSize:13, fontWeight:700, marginBottom:4 }}>{relatedDert.title}</div>
-                      <div style={{ fontSize:12, color:"#666" }}>{relatedDert.content.slice(0,120)}...</div>
-                      <div style={{ fontSize:11, color:"#aaa", marginTop:4 }}>— {relatedDert.author}</div>
+        {/* İstatistik kartları */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, marginBottom:24 }}>
+          {[
+            ["Toplam Dert", derts.length, "📋"],
+            ["Çözülen", derts.filter(d=>d.solved).length, "⭐"],
+            ["Toplam Derman", derts.reduce((a,d)=>a+d.comments.length,0), "💬"],
+            ["Açık Şikayet", adminReports.length, "🚩"],
+          ].map(([label, val, icon])=>(
+            <div key={label} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+              borderRadius:12, padding:"16px 14px", textAlign:"center",
+              boxShadow:"0 2px 8px rgba(0,0,0,.05)" }}>
+              <div style={{ fontSize:22 }}>{icon}</div>
+              <div style={{ fontSize:26, fontWeight:900, marginTop:6, color:fg }}>{val}</div>
+              <div style={{ fontSize:9, color:muted, letterSpacing:1, textTransform:"uppercase", marginTop:4 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab sistemi */}
+        <div style={{ display:"flex", gap:6, background:dark?"#1a1a1a":"#ebebeb",
+          padding:4, borderRadius:12, marginBottom:20 }}>
+          {[
+            ["sikayet", `🚩 Şikayetler (${adminReports.length})`],
+            ["dertler", `📋 Tüm Dertler (${derts.length})`],
+            ["dermanlar", `💬 Tüm Dermanlar (${derts.reduce((a,d)=>a+d.comments.length,0)})`],
+          ].map(([id, label]) => (
+            <button key={id} onClick={()=>setAdminTab(id)}
+              style={{ flex:1, padding:"9px 8px", border:"none", borderRadius:9,
+                fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
+                cursor:"pointer", transition:"all .2s",
+                color: adminTab===id ? "#fff" : muted,
+                background: adminTab===id
+                  ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                  : "transparent",
+                boxShadow: adminTab===id
+                  ? "0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)"
+                  : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── ŞİKAYETLER ── */}
+        {adminTab === "sikayet" && (
+          adminReports.length === 0 ? (
+            <div style={{ border:`2px dashed ${bdr}`, borderRadius:12,
+              padding:"40px 20px", textAlign:"center", color:muted }}>
+              <div style={{ fontSize:36, marginBottom:12 }}>✅</div>
+              <div style={{ fontSize:14, fontWeight:700 }}>Şikayet yok — her şey temiz!</div>
+            </div>
+          ) : (
+            adminReports.map(r => {
+              const relatedDert = derts.find(d => d.id === r.dert_id);
+              const relatedComment = relatedDert?.comments?.find(c => c.id === r.comment_id);
+              return (
+                <div key={r.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                  borderRadius:12, padding:"18px 20px", marginBottom:12,
+                  boxShadow:"0 2px 8px rgba(0,0,0,.05)" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"flex-start", flexWrap:"wrap", gap:8 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:10, fontWeight:700, letterSpacing:2,
+                        textTransform:"uppercase", color:"#c0392b", marginBottom:8 }}>
+                        🚩 {r.reason}
+                      </div>
+                      <div style={{ fontSize:11, color:muted, marginBottom:8 }}>
+                        Şikayet eden: <strong>{r.profiles?.name || "?"}</strong> · {new Date(r.created_at).toLocaleString("tr-TR")}
+                      </div>
+                      {relatedDert && (
+                        <div style={{ background:dark?"#2a2a2a":"#f9f9f9", border:`1.5px solid ${bdr}`,
+                          borderRadius:8, padding:"10px 14px", marginBottom:8 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:muted, marginBottom:4 }}>DERT</div>
+                          <div style={{ fontSize:13, fontWeight:700, marginBottom:4, color:fg }}>{relatedDert.title}</div>
+                          <div style={{ fontSize:12, color:muted }}>{relatedDert.content.slice(0,120)}...</div>
+                          <div style={{ fontSize:11, color:muted, marginTop:4 }}>— {relatedDert.author}</div>
+                        </div>
+                      )}
+                      {relatedComment && (
+                        <div style={{ background:"#fff3f3", border:"1.5px solid #ffcccc",
+                          borderRadius:8, padding:"10px 14px" }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:"#c0392b", marginBottom:4 }}>ŞİKAYET EDİLEN DERMAN</div>
+                          <div style={{ fontSize:13, color:"#333" }}>{relatedComment.text}</div>
+                          <div style={{ fontSize:11, color:"#aaa", marginTop:4 }}>— {relatedComment.author}</div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {relatedComment && (
-                    <div style={{ background:"#fff3f3", border:"1.5px solid #ffcccc",
-                      padding:"10px 14px" }}>
-                      <div style={{ fontSize:10, fontWeight:700, letterSpacing:1,
-                        textTransform:"uppercase", color:"#c0392b", marginBottom:4 }}>Şikayet Edilen Derman</div>
-                      <div style={{ fontSize:13, color:"#333" }}>{relatedComment.text}</div>
-                      <div style={{ fontSize:11, color:"#aaa", marginTop:4 }}>— {relatedComment.author}</div>
+                    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                      {r.dert_id && (
+                        <button onClick={()=>{
+                          setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(r.dert_id);
+                          setTimeout(()=>{ const el=document.getElementById("dert-"+r.dert_id); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); },300);
+                        }} style={{ padding:"7px 14px",
+                          background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                          color:"#fff", border:"none", borderRadius:8, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
+                          boxShadow:"0 2px 8px rgba(0,0,0,.25)" }}>
+                          Derte Git →
+                        </button>
+                      )}
+                      {r.comment_id && (
+                        <button onClick={async()=>{
+                          if (!window.confirm("Bu dermanı silmek istiyor musun?")) return;
+                          if (relatedComment?.ownerRated && relatedComment?.stars === 10) {
+                            await supabase.from("derts").update({ solved: false }).eq("id", r.dert_id);
+                          }
+                          await supabase.from("comments").delete().eq("id", r.comment_id);
+                          await supabase.from("reports").delete().eq("id", r.id);
+                          setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                          await loadDerts(); showToast("deleted");
+                        }} style={{ padding:"7px 14px", background:"#c0392b", color:"#fff",
+                          border:"none", borderRadius:8, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
+                          Dermanı Sil
+                        </button>
+                      )}
+                      {r.dert_id && !r.comment_id && (
+                        <button onClick={async()=>{
+                          if (!window.confirm("Bu derdi silmek istiyor musun?")) return;
+                          await supabase.from("derts").delete().eq("id", r.dert_id);
+                          await supabase.from("reports").delete().eq("id", r.id);
+                          setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                          await loadDerts(); showToast("deleted");
+                        }} style={{ padding:"7px 14px", background:"#c0392b", color:"#fff",
+                          border:"none", borderRadius:8, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
+                          Derdi Sil
+                        </button>
+                      )}
+                      <button onClick={async()=>{
+                        await supabase.from("reports").delete().eq("id", r.id);
+                        setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
+                      }} style={{ padding:"7px 14px", background:bg0, color:muted,
+                        border:`1px solid ${bdr}`, borderRadius:8, cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
+                        Yoksay
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-                  {r.dert_id && (
-                    <button onClick={()=>{
-                      setScreen("app"); setTab("feed"); setCat("Hepsi");
-                      setOpenId(r.dert_id);
-                      setTimeout(()=>{
-                        const el = document.getElementById("dert-"+r.dert_id);
-                        if (el) el.scrollIntoView({ behavior:"smooth", block:"center" });
-                      }, 300);
-                    }} style={{ padding:"6px 14px", background:"#111", color:"#fff",
-                      border:"2px solid #111", cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
-                      Derte Git →
-                    </button>
-                  )}
-                  {/* Şikayet edilen içeriği sil */}
-                  {r.comment_id && (
+              );
+            })
+          )
+        )}
+
+        {/* ── TÜM DERTLER ── */}
+        {adminTab === "dertler" && (
+          <div>
+            {[...derts].sort((a,b)=>b.ts-a.ts).map(d => (
+              <div key={d.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                borderRadius:12, padding:"14px 18px", marginBottom:10,
+                display:"flex", gap:12, alignItems:"flex-start",
+                boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5,
+                      textTransform:"uppercase",
+                      background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                      color:"#fff", padding:"2px 8px", borderRadius:4 }}>{d.category}</span>
+                    {d.solved && <span style={{ fontSize:9, background:"#fff3cd",
+                      color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ Çözüldü</span>}
+                    {d.closed && !d.solved && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
+                      color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>🔒 Kapalı</span>}
+                  </div>
+                  <div style={{ fontWeight:700, fontSize:14, marginBottom:2, color:fg }}>{d.title}</div>
+                  <div style={{ fontSize:12, color:muted, marginBottom:4 }}>
+                    {d.content.slice(0,80)}{d.content.length>80?"...":""}
+                  </div>
+                  <div style={{ fontSize:10, color:muted }}>
+                    {d.author} · {d.comments.length} derman · {new Date(d.ts).toLocaleString("tr-TR")}
+                  </div>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+                  <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(d.id); }}
+                    style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
+                      border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
+                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                    Görüntüle
+                  </button>
+                  {d.solved && (
                     <button onClick={async()=>{
-                      if (!window.confirm("Bu dermanı silmek istiyor musun?")) return;
-                      await supabase.from("comments").delete().eq("id", r.comment_id);
-                      await supabase.from("reports").delete().eq("id", r.id);
-                      setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
-                      await loadDerts();
-                    }} style={{ padding:"6px 14px", background:"#c0392b", color:"#fff",
-                      border:"2px solid #c0392b", cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
-                      Dermanı Sil
-                    </button>
-                  )}
-                  {r.dert_id && !r.comment_id && (
-                    <button onClick={async()=>{
-                      if (!window.confirm("Bu derdi silmek istiyor musun?")) return;
-                      await supabase.from("derts").delete().eq("id", r.dert_id);
-                      await supabase.from("reports").delete().eq("id", r.id);
-                      setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
-                      await loadDerts();
-                    }} style={{ padding:"6px 14px", background:"#c0392b", color:"#fff",
-                      border:"2px solid #c0392b", cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
-                      Derdi Sil
+                      if (!window.confirm("Dermana Ulaştı durumunu sıfırlayalım mı?")) return;
+                      await supabase.from("derts").update({ solved: false }).eq("id", d.id);
+                      const goldComment = d.comments.find(c=>c.stars===10&&c.ownerRated);
+                      if (goldComment) await supabase.from("comments").update({ stars:0, owner_rated:false, badge:null }).eq("id", goldComment.id);
+                      await loadDerts(); showToast("edit_dert");
+                    }} style={{ padding:"5px 12px", background:"#fff3cd", color:"#856404",
+                      border:"1px solid #ffc107", borderRadius:6, cursor:"pointer",
+                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                      ⭐ Sıfırla
                     </button>
                   )}
                   <button onClick={async()=>{
-                    await supabase.from("reports").delete().eq("id", r.id);
-                    setAdminReports(prev=>prev.filter(x=>x.id!==r.id));
-                  }} style={{ padding:"6px 14px", background:"#fff", color:"#666",
-                    border:"2px solid #ddd", cursor:"pointer",
-                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700 }}>
-                    Yoksay
+                    if (!window.confirm(`"${d.title}" silinsin mi?`)) return;
+                    await supabase.from("derts").delete().eq("id", d.id);
+                    await loadDerts(); showToast("deleted");
+                  }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
+                    border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
+                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                    Sil
                   </button>
                 </div>
               </div>
-            </div>
-            );
-          })
+            ))}
+          </div>
         )}
 
-        {/* Genel istatistikler */}
-        <div style={{ marginTop:32, borderTop:"2px solid #111", paddingTop:24 }}>
-          <div style={{ fontSize:13, fontWeight:700, letterSpacing:1, marginBottom:16 }}>Genel Durum</div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
-            {[
-              ["Toplam Dert", derts.length, "📋"],
-              ["Çözülen", derts.filter(d=>d.solved).length, "⭐"],
-              ["Açık Şikayet", adminReports.length, "🚩"],
-            ].map(([label, val, icon])=>(
-              <div key={label} style={{ border:"2px solid #111", padding:"16px", textAlign:"center" }}>
-                <div style={{ fontSize:24 }}>{icon}</div>
-                <div style={{ fontSize:28, fontWeight:900, marginTop:6 }}>{val}</div>
-                <div style={{ fontSize:10, color:"#666", letterSpacing:1, textTransform:"uppercase", marginTop:4 }}>{label}</div>
+        {/* ── TÜM DERMANLAR ── */}
+        {adminTab === "dermanlar" && (
+          <div>
+            {derts.flatMap(d=>d.comments.map(c=>({...c,dertTitle:d.title,dertId:d.id})))
+              .sort((a,b)=>b.id-a.id).map(c => (
+              <div key={c.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                borderRadius:12, padding:"14px 18px", marginBottom:10,
+                display:"flex", gap:12, alignItems:"flex-start",
+                boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:9, color:muted, fontWeight:700, letterSpacing:1,
+                    textTransform:"uppercase", marginBottom:4 }}>"{c.dertTitle?.slice(0,50)}"</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                    <span style={{ fontWeight:700, fontSize:13, color:fg }}>{c.author}</span>
+                    {c.badge === "gold" && <span style={{ fontSize:9, background:"#fff3cd",
+                      color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ ALTIN</span>}
+                    {c.badge === "silver" && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
+                      color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>✦ GÜMÜŞ</span>}
+                    {c.ownerRated && <span style={{ fontSize:10, color:"#27ae60", fontWeight:700 }}>{c.stars}/10</span>}
+                  </div>
+                  <div style={{ fontSize:13, color:muted, lineHeight:1.5 }}>
+                    {c.text.slice(0,120)}{c.text.length>120?"...":""}
+                  </div>
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+                  <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(c.dertId); }}
+                    style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
+                      border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
+                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                    Derte Git
+                  </button>
+                  <button onClick={async()=>{
+                    if (!window.confirm("Bu dermanı silmek istiyor musun?")) return;
+                    if (c.ownerRated && c.stars === 10) {
+                      await supabase.from("derts").update({ solved: false }).eq("id", c.dertId);
+                    }
+                    await supabase.from("comments").delete().eq("id", c.id);
+                    await loadDerts(); showToast("deleted");
+                  }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
+                    border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
+                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                    Sil
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        )}
+
       </div>
     </div>
   );
-
   if (screen==="profile" && user) return (
     <div style={{ minHeight:"100vh", background:bg1, fontFamily:"'Inter',system-ui,sans-serif", color:fg }}>
       <CSS/><Toast toast={toast}/>
