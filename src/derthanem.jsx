@@ -1002,7 +1002,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                 : "Bu derdi silmek istiyor musun?";
               if (window.confirm(msg)) onDelete(dert.id);
             }} style={{
-              padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
+              padding:"5px 11px", border:"1.5px solid #ffcccc", background:cardBg,
               color:"#c0392b", cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
               fontSize:11, fontWeight:700, opacity:.7, transition:"opacity .15s"
             }}
@@ -1015,8 +1015,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           {/* Dert kapatma — sadece sahibi, çözülmemişse */}
           {owned && !dert.solved && !isClosed && (
             <button onClick={()=>onClose(dert.id)} style={{
-              padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
-              color:"#666", cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+              padding:"5px 11px", border:`1.5px solid ${subBdr}`, background:cardBg,
+              color:mutedCard, cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
               fontSize:11, fontWeight:700, marginLeft:"auto"
             }}>🔒 Derdim Geçti</button>
           )}
@@ -1037,8 +1037,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
             <button onClick={()=>{
               if (window.confirm(dert.author + " adlı kullanıcıyı engellemek istiyor musun? Dertleri artık görünmez."))
                 onBlock(dert.authorId);
-            }} style={{ padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
-              color:"#aaa", cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+            }} style={{ padding:"5px 11px", border:`1.5px solid ${subBdr}`, background:cardBg,
+              color:mutedCard, cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
               fontSize:11, fontWeight:700 }} title="Kullanıcıyı Engelle">
               🚫
             </button>
@@ -1389,8 +1389,9 @@ function CSS() {
       ".btn-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.12) 50%,transparent 60%);background-size:200% 100%;animation:shimmer 3s infinite;}",
       /* Solved card animated border */
       ".solved-card{background-size:200% 200%!important;animation:gradientShift 4s ease infinite!important;}",
-      /* Input */
-      "textarea:focus,input:focus,select:focus{outline:none;border-color:#111!important;box-shadow:0 0 0 3px rgba(17,17,17,.06)!important;border-radius:8px!important}",
+      /* Dark mode smooth transition */
+      "*, *::before, *::after { transition: background-color .25s ease, border-color .2s ease, color .15s ease !important }",
+      ".no-transition, .no-transition * { transition: none !important }",
       /* Scrollbar */
       "::-webkit-scrollbar{width:4px;height:4px}",
       "::-webkit-scrollbar-track{background:transparent}",
@@ -1574,6 +1575,23 @@ export default function Derthanem() {
   }, [loadDerts]);
 
   const board = useMemo(() => computeBoard(derts), [derts]);
+
+  // Haftalık en çok derman alan dert
+  const weeklyHot = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return [...derts]
+      .filter(d => !d.solved && !d.closed)
+      .map(d => ({
+        ...d,
+        weeklyComments: d.comments.filter(c => {
+          // comment id'den rough timestamp estimate (big int ids are time-based)
+          return true; // tüm aktif dertleri say
+        }).length
+      }))
+      .filter(d => d.ts > weekAgo || d.weeklyComments > 0)
+      .sort((a,b) => b.weeklyComments - a.weeklyComments)
+      .find(d => d.weeklyComments > 0) || null;
+  }, [derts]);
 
   const notifications = useMemo(() => {
     if (!user) return [];
@@ -1934,6 +1952,19 @@ export default function Derthanem() {
   const myAvg      = ratedComs.length ? (ratedComs.reduce((a,c)=>a+c.stars,0)/ratedComs.length).toFixed(1) : null;
   const myGold     = ratedComs.filter(c=>c.badge==="gold").length;
   const mySilver   = ratedComs.filter(c=>c.badge==="silver").length;
+
+  // Rozet sistemi
+  const myAchievements = user ? [
+    { id:"ilk_dert",   icon:"📝", label:"İlk Dert",      desc:"İlk dertini paylaştın",          earned: myDerts.length >= 1 },
+    { id:"ilk_derman", icon:"💬", label:"İlk Derman",    desc:"İlk dermanını yazdın",            earned: myComments.length >= 1 },
+    { id:"derman_5",   icon:"✍️", label:"Derman Yazarı", desc:"5 derman yazdın",                 earned: myComments.length >= 5 },
+    { id:"derman_20",  icon:"🖊️", label:"Derman Ustası", desc:"20 derman yazdın",                earned: myComments.length >= 20 },
+    { id:"altin_1",    icon:"⭐", label:"Altın Kalp",    desc:"İlk altın dermanını aldın",       earned: myGold >= 1 },
+    { id:"altin_3",    icon:"🌟", label:"Altın Usta",    desc:"3 altın derman kazandın",         earned: myGold >= 3 },
+    { id:"dert_5",     icon:"😔", label:"Dertli",        desc:"5 dert paylaştın",                earned: myDerts.length >= 5 },
+    { id:"dert_coz",   icon:"🎉", label:"Derdim Bitti",  desc:"Bir derttin dermana ulaştı",      earned: myDerts.some(d=>d.solved) },
+    { id:"avg_8",      icon:"🏆", label:"Puan Şampiyonu","desc":"Ortalamanın 8 üzeri",            earned: myAvg && parseFloat(myAvg) >= 8 },
+  ] : [];
   // Liderboard'daki sıra
   const myRank     = user ? board.findIndex(u=>u.authorId===user.id)+1 : 0;
   const myGenderBoard = user ? board.filter(u=>u.gender===user.gender) : [];
@@ -2703,22 +2734,29 @@ export default function Derthanem() {
         </div>
 
         {/* Profil Tabları */}
-        <div style={{ display:"flex", gap:0, marginBottom:24, border:`1.5px solid ${bdr}`, borderRadius:10, overflow:"hidden" }}>
+        <div style={{ display:"flex", gap:6, marginBottom:24,
+          background: dark?"#1a1a1a":"#f0f0f0", padding:4, borderRadius:12 }}>
           {[
-            ["dertlerim", "📋 Dertlerim"],
-            ["bildirimler", "🔔 Bildirimler"],
-            ["ayarlar", "⚙️ Ayarlar"],
-          ].map(([id, label]) => (
+            ["dertlerim",   "📋"],
+            ["rozetler",    "🏅"],
+            ["bildirimler", "🔔"],
+            ["ayarlar",     "⚙️"],
+          ].map(([id, icon]) => (
             <button key={id} onClick={()=>{
               setProfileTab(id);
               if (id==="bildirimler") loadNotifs();
-            }} style={{ flex:1, padding:"11px 8px",
-              background: profileTab===id ? "#111" : bg0,
+            }} style={{ flex:1, padding:"9px 6px",
+              background: profileTab===id
+                ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                : "transparent",
               color: profileTab===id ? "#fff" : muted,
-              border:"none", borderRight: id!=="ayarlar" ? `2px solid ${bdr}` : "none",
+              border:"none", borderRadius:9,
               cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
-              fontSize:11, fontWeight:700, transition:"all .15s" }}>
-              {label}
+              fontSize:14, transition:"all .2s",
+              boxShadow: profileTab===id
+                ? "0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)"
+                : "none" }}>
+              {icon}
             </button>
           ))}
         </div>
@@ -2768,6 +2806,69 @@ export default function Derthanem() {
             ))}
           </>}
         </>}
+
+        {/* ── ROZETLER ── */}
+        {profileTab === "rozetler" && (
+          <div>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
+              textTransform:"uppercase", color:muted, marginBottom:16 }}>
+              Rozetler ({myAchievements.filter(a=>a.earned).length}/{myAchievements.length})
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+              {myAchievements.map(a => (
+                <div key={a.id} style={{
+                  background: a.earned
+                    ? (dark ? "linear-gradient(135deg,#1a2a1a,#2a3a2a)" : "linear-gradient(135deg,#f0faf0,#e8f5e9)")
+                    : bg0,
+                  border: `1.5px solid ${a.earned ? "#27ae60" : bdr}`,
+                  borderRadius:12, padding:"16px 12px", textAlign:"center",
+                  opacity: a.earned ? 1 : 0.45,
+                  transition:"all .2s",
+                  boxShadow: a.earned ? "0 2px 12px rgba(39,174,96,.15)" : "none"
+                }}>
+                  <div style={{ fontSize:28, marginBottom:8,
+                    filter: a.earned ? "none" : "grayscale(1)" }}>{a.icon}</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:fg, marginBottom:4 }}>{a.label}</div>
+                  <div style={{ fontSize:10, color:muted, lineHeight:1.4 }}>{a.desc}</div>
+                  {a.earned && (
+                    <div style={{ fontSize:9, color:"#27ae60", fontWeight:700,
+                      marginTop:8, letterSpacing:1 }}>✓ KAZANILDI</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* İlerleme özeti */}
+            <div style={{ marginTop:20, background:bg0, border:`1.5px solid ${bdr}`,
+              borderRadius:12, padding:"16px 18px" }}>
+              <div style={{ fontSize:11, fontWeight:700, color:fg, marginBottom:12 }}>İlerleme</div>
+              {[
+                ["Dert", myDerts.length, 10, "📝"],
+                ["Derman", myComments.length, 20, "💬"],
+                ["Altın", myGold, 3, "⭐"],
+              ].map(([label, val, max, icon]) => (
+                <div key={label} style={{ marginBottom:12 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    fontSize:11, color:muted, marginBottom:5 }}>
+                    <span>{icon} {label}</span>
+                    <span style={{ fontWeight:700, color:fg }}>{val}/{max}</span>
+                  </div>
+                  <div style={{ height:6, background:dark?"#2a2a2a":"#f0f0f0",
+                    borderRadius:3, overflow:"hidden" }}>
+                    <div style={{
+                      height:"100%", borderRadius:3,
+                      width:`${Math.min(100,(val/max)*100)}%`,
+                      background: val >= max
+                        ? "linear-gradient(90deg,#27ae60,#2ecc71)"
+                        : "linear-gradient(90deg,#111,#444)",
+                      transition:"width .6s cubic-bezier(.22,1,.36,1)"
+                    }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── BİLDİRİMLER ── */}
         {profileTab === "bildirimler" && (
@@ -3056,10 +3157,10 @@ export default function Derthanem() {
 
         {/* Hoş geldin banner */}
         {welcomeMsg && (
-          <div style={{ background:"#111", color:"#fff", padding:"13px 18px",
-            marginTop:16, display:"flex", alignItems:"center", justifyContent:"space-between",
+          <div style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", padding:"13px 18px",
+            marginTop:16, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"space-between",
             fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
-            boxShadow:"4px 4px 0 #333", animation:"fu .4s ease" }}>
+            boxShadow:"0 4px 16px rgba(0,0,0,.25)", animation:"fu .4s ease" }}>
             <span>{welcomeMsg}</span>
             <button onClick={()=>setWelcomeMsg(null)} style={{ background:"none", border:"none",
               color:"rgba(255,255,255,.5)", cursor:"pointer", fontSize:16, padding:"0 4px" }}>✕</button>
@@ -3068,6 +3169,33 @@ export default function Derthanem() {
 
         {/* ── FEED ── */}
         {tab==="feed" && (<>
+
+          {/* Haftalık öne çıkan dert */}
+          {weeklyHot && !search && cat==="Hepsi" && (
+            <div onClick={()=>setOpenId(weeklyHot.id)}
+              style={{ background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",
+                color:"#fff", borderRadius:14, padding:"14px 18px", marginTop:16, marginBottom:4,
+                cursor:"pointer", boxShadow:"0 4px 20px rgba(15,52,96,.4)",
+                display:"flex", alignItems:"center", gap:12,
+                border:"1px solid rgba(255,255,255,.08)",
+                animation:"fu .4s ease" }}>
+              <div style={{ fontSize:28, flexShrink:0 }}>🔥</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
+                  textTransform:"uppercase", opacity:.5, marginBottom:4 }}>
+                  Haftanın En Çok Konuşulanı
+                </div>
+                <div style={{ fontSize:14, fontWeight:700, lineHeight:1.3,
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {weeklyHot.title}
+                </div>
+                <div style={{ fontSize:11, opacity:.5, marginTop:3 }}>
+                  {weeklyHot.comments.length} derman · {weeklyHot.category}
+                </div>
+              </div>
+              <div style={{ fontSize:11, opacity:.4, flexShrink:0 }}>→</div>
+            </div>
+          )}
 
           {/* Arama */}
           <div style={{ margin:"16px 0 0", position:"relative" }}>
@@ -3078,8 +3206,9 @@ export default function Derthanem() {
               onChange={e=>setSearch(e.target.value)}
               placeholder="Dertlerde ara…"
               style={{ width:"100%", padding:"10px 13px 10px 36px", boxSizing:"border-box",
-                border:"2px solid #ddd", fontFamily:"'Inter',system-ui,sans-serif", fontSize:13,
-                background:"#fff", color:"#111", outline:"none" }}
+                border:`1.5px solid ${bdr}`, borderRadius:10,
+                fontFamily:"'Inter',system-ui,sans-serif", fontSize:13,
+                background:bg0, color:fg, outline:"none" }}
             />
             {search && (
               <button onClick={()=>setSearch("")}
@@ -3414,7 +3543,7 @@ export default function Derthanem() {
                 { label:"Derman Bekleniyor", value:stats.waiting,    icon:"⏳", desc:"henüz yanıt yok" },
                 { label:"Ortalama Derman",value:stats.avgDerman,     icon:"💬", desc:"dert başına" },
               ].map(({label,value,icon,desc})=>(
-                <div key={label} style={{ background:"#fff", border:"2px solid #111",
+                <div key={label} style={{ background:bg0, border:`1.5px solid ${bdr}`,
                   padding:"18px 16px", borderRadius:12,
                   boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
                   <div style={{ fontSize:22 }}>{icon}</div>
