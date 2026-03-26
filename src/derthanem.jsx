@@ -1107,8 +1107,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                 const isBest      = c.ownerRated && c.stars===10;
                 const isMyComment = user && user.id === c.authorId;
                 const canEdit     = isMyComment && !c.ownerRated && !isClosed;
-                const isEditing   = editingId === c.id;
-                return (
+                const isEditing   = editingId === c.id;                return (
                   <div key={c.id} style={{
                     background: isBest
                       ? "linear-gradient(160deg,#2d2d2d 0%,#111 50%,#080808 100%)"
@@ -1237,7 +1236,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                 );
               })}
 
-              {/* Derman yaz kutusu */}
+              {/* Derman yaz kutusu — comments listesinin sonunda */}
               {!owned && !isClosed && !dert.solved && user && (
                 <div style={{ padding:"16px", background:cardBg,
                   borderTop:`2px dashed ${dark?"#2a2a2a":"#e8e8e8"}`,
@@ -1249,6 +1248,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                   <div style={{ position:"relative" }}>
                     <textarea ref={taRef}
                       value={cTexts[dert.id]||""}
+                      onClick={e=>e.stopPropagation()}
                       onChange={e=>{
                         const v=e.target.value.slice(0,500);
                         setCTexts(p=>({...p,[dert.id]:v}));
@@ -1282,16 +1282,78 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                         style={{ width:14, height:14, cursor:"pointer" }}/>
                       Anonim yaz
                     </label>
-                    <button onClick={()=>onComment(dert.id)}
-                      style={{ padding:"9px 22px", background:"#111", color:"#fff",
-                        border:"2px solid #111", cursor:"pointer",
+                    <button onClick={(e)=>{ e.stopPropagation(); onComment(dert.id); }}
+                      style={{ padding:"9px 22px",
+                        background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                        color:"#fff", border:"none", borderRadius:8, cursor:"pointer",
                         fontFamily:"'Inter',system-ui,sans-serif",
-                        fontSize:13, fontWeight:700, letterSpacing:.3 }}>
+                        fontSize:13, fontWeight:700, letterSpacing:.3,
+                        boxShadow:"0 2px 8px rgba(0,0,0,.25)" }}>
                       Derman Yaz →
                     </button>
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Derman yaz — hiç derman yokken (isOpen ama comments.length===0) */}
+          {isOpen && dert.comments.length===0 && !owned && !isClosed && !dert.solved && user && (
+            <div style={{ background: dark?"#161616":"#f4f4f4",
+              borderTop:`1px solid ${dark?"#2a2a2a":"#e8e8e8"}` }}>
+              <div style={{ padding:"16px", background:cardBg }}>
+                <div style={{ fontSize:9, fontWeight:800, letterSpacing:2,
+                  textTransform:"uppercase", color:mutedCard, marginBottom:10 }}>
+                  ✦ İlk Dermanı Sen Yaz
+                </div>
+                <div style={{ position:"relative" }}>
+                  <textarea ref={taRef}
+                    value={cTexts[dert.id]||""}
+                    onClick={e=>e.stopPropagation()}
+                    onChange={e=>{
+                      const v=e.target.value.slice(0,500);
+                      setCTexts(p=>({...p,[dert.id]:v}));
+                      setCWarns(p=>({...p,[dert.id]:warnMsg(v)}));
+                    }}
+                    onFocus={()=>setTimeout(()=>taRef.current?.scrollIntoView({behavior:"smooth",block:"center"}),300)}
+                    placeholder="Çözüm öner, deneyimini paylaş…"
+                    rows={3}
+                    style={{ width:"100%", padding:"11px 13px", boxSizing:"border-box",
+                      border:`2px solid ${subBdr}`, fontFamily:"'Inter',system-ui,sans-serif",
+                      fontSize:14, lineHeight:1.7, resize:"vertical",
+                      background:cardBg, color:fgCard, outline:"none" }}/>
+                  <div style={{ position:"absolute", bottom:8, right:10,
+                    fontSize:10, color:(cTexts[dert.id]||"").length>450?"#c0392b":mutedCard,
+                    pointerEvents:"none" }}>
+                    {(cTexts[dert.id]||"").length}/500
+                  </div>
+                </div>
+                {cWarns[dert.id] && (
+                  <div style={{ fontSize:11, color:"#c0392b", marginTop:4, fontWeight:700 }}>
+                    {cWarns[dert.id]}
+                  </div>
+                )}
+                <div style={{ display:"flex", alignItems:"center",
+                  justifyContent:"space-between", marginTop:10 }}>
+                  <label style={{ display:"flex", alignItems:"center", gap:6,
+                    cursor:"pointer", fontSize:12, color:mutedCard, userSelect:"none" }}>
+                    <input type="checkbox"
+                      checked={!!(cAnon&&cAnon[dert.id])}
+                      onChange={e=>setCAnon&&setCAnon(p=>({...p,[dert.id]:e.target.checked}))}
+                      style={{ width:14, height:14, cursor:"pointer" }}/>
+                    Anonim yaz
+                  </label>
+                  <button onClick={(e)=>{ e.stopPropagation(); onComment(dert.id); }}
+                    style={{ padding:"9px 22px",
+                      background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                      color:"#fff", border:"none", borderRadius:8, cursor:"pointer",
+                      fontFamily:"'Inter',system-ui,sans-serif",
+                      fontSize:13, fontWeight:700, letterSpacing:.3,
+                      boxShadow:"0 2px 8px rgba(0,0,0,.25)" }}>
+                    Derman Yaz →
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1468,6 +1530,8 @@ export default function Derthanem() {
   const [user,   setUser]     = useState(null);
   const [auth,   setAuth]     = useState(null);
   const [derts,  setDerts]    = useState([]);
+  const [page,   setPage]     = useState(1);
+  const PAGE_SIZE = 20;
   const [loading,setLoading]  = useState(true);
   const [tab,    setTab]      = useState("feed");
   const [cat,    setCat]      = useState("Hepsi");
@@ -1477,9 +1541,10 @@ export default function Derthanem() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState(new Set());
   const [welcomeMsg, setWelcomeMsg] = useState(null);
-  const [page, setPage]       = useState(1);
+  const [search,  setSearch]   = useState("");
+  const [sortBy,  setSortBy]   = useState("new");
   const [blockedUsers, setBlockedUsers] = useState([]); // engellenen user id'leri
-  const PAGE_SIZE = 10; // hoş geldin banner
+
   const [userAvatar, setUserAvatar] = useState(null);  // seçili emoji avatar
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [adminReports, setAdminReports] = useState([]);
@@ -1511,8 +1576,6 @@ export default function Derthanem() {
   const [cTexts,  setCTexts]   = useState({});
   const [cWarns,  setCWarns]   = useState({});
   const [cAnon,   setCAnon]    = useState({}); // dertId → bool (anonim derman)
-  const [search,  setSearch]   = useState("");
-  const [sortBy,  setSortBy]   = useState("new");
 
   /* ── Supabase: Tüm dertleri çek ── */
   const loadDerts = useCallback(async () => {
@@ -1739,13 +1802,14 @@ export default function Derthanem() {
   const handleRate = async (dertId, commentId, stars) => {
     const badge = stars===10?"gold":stars>=8?"silver":null;
     // Önce UI'ı hemen güncelle (optimistic)
-    setDerts(prev => prev.map(d => {
+    const updateFn = prev => prev.map(d => {
       if (d.id !== dertId) return d;
       const comments = d.comments.map(c =>
         c.id !== commentId ? c : { ...c, stars, ownerRated:true, badge }
       );
       return { ...d, comments, solved: stars===10 ? true : d.solved };
-    }));
+    });
+    setDerts(updateFn);
     if (stars===10) showToast("solved_"+dertId);
     // Sonra DB'ye yaz
     await supabase.from("comments")
@@ -1753,8 +1817,26 @@ export default function Derthanem() {
     if (stars===10) {
       await supabase.from("derts").update({ solved:true }).eq("id", dertId);
     }
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
+
+  // Tek bir dert'i derts içinde güncelle
+  const refreshDertInFeed = useCallback(async (dertId) => {
+    const { data } = await supabase
+      .from("derts")
+      .select([
+        "id,author_id,is_anon,title,content,category,solved,closed,created_at",
+        "profiles!derts_author_id_fkey(name,gender)",
+        "relates(user_id)",
+        "comments(id,author_id,text,stars,owner_rated,badge,is_anon,created_at,profiles!comments_author_id_fkey(name,gender),likes(user_id))"
+      ].join(","))
+      .eq("id", dertId)
+      .single();
+    if (data) {
+      const mapped = mapDert(data);
+      setDerts(prev => prev.map(d => d.id===dertId ? mapped : d));
+    }
+  }, []);
 
   const handleComment = async (dertId) => {
     if (!user) { needAuth("login"); return; }
@@ -1807,20 +1889,20 @@ export default function Derthanem() {
           }
         }).catch(()=>{});
       }
-      await loadDerts();
+      await refreshDertInFeed(dertId);
     }
   };
 
   const handleEdit = async (dertId, commentId, newText) => {
     await supabase.from("comments").update({ text:newText }).eq("id", commentId);
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
 
   const handleEditDert = async (dertId, form) => {
     await supabase.from("derts")
       .update({ title:form.title.trim(), content:form.content.trim() }).eq("id", dertId);
     showToast("edit_dert");
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
 
   const handleLike = async (dertId, commentId) => {
@@ -1833,7 +1915,7 @@ export default function Derthanem() {
     } else {
       await supabase.from("likes").insert({ comment_id:commentId, user_id:user.id });
     }
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
 
   const handleReport = async (dertId, commentId) => {
@@ -1863,25 +1945,25 @@ export default function Derthanem() {
     } else {
       await supabase.from("relates").insert({ dert_id:dertId, user_id:user.id });
     }
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
 
   const handleClose = async (dertId) => {
     await supabase.from("derts").update({ closed:true }).eq("id", dertId);
     showToast("closed_"+dertId);
-    await loadDerts();
+    await refreshDertInFeed(dertId);
   };
 
   const handleDeleteComment = async (dertId, commentId) => {
     // Önce UI'dan kaldır
-    setDerts(prev => prev.map(d => d.id!==dertId ? d : {
+    const removeComment = prev => prev.map(d => d.id!==dertId ? d : {
       ...d, comments: d.comments.filter(c => c.id!==commentId)
-    }));
+    });
+    setDerts(removeComment);
     // DB'den sil
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
     if (error) {
-      // Hata varsa yeniden yükle
-      await loadDerts();
+      await refreshDertInFeed(dertId);
     }
   };
 
@@ -2012,7 +2094,6 @@ export default function Derthanem() {
 
   const filtered = useMemo(() => {
     let list = cat==="Hepsi" ? [...derts] : derts.filter(d=>d.category===cat);
-    // Engellenen kullanıcıların dertlerini gizle
     if (blockedUsers.length > 0)
       list = list.filter(d => !blockedUsers.includes(d.authorId));
     if (search.trim()) {
@@ -2027,7 +2108,6 @@ export default function Derthanem() {
     return list;
   }, [derts, cat, search, sortBy, blockedUsers]);
 
-  // Sayfalanmış liste
   const pagedFiltered = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
 
   /* ── Shared header ── */
@@ -3426,8 +3506,21 @@ export default function Derthanem() {
               )}
             </div>
           )}
+          {/* Sonuç yok */}
+          {pagedFiltered.length === 0 && (
+            <div style={{ border:`2px dashed ${bdr}`, borderRadius:12,
+              padding:"40px 20px", textAlign:"center", color:muted, marginTop:16 }}>
+              <div style={{ fontSize:36, marginBottom:12 }}>🔍</div>
+              <div style={{ fontSize:14, fontWeight:700, color:fg, marginBottom:6 }}>
+                {search ? `"${search}" için sonuç bulunamadı` : "Henüz dert yok"}
+              </div>
+              <div style={{ fontSize:12 }}>
+                {search ? "Farklı kelimeler dene" : "İlk derdi sen paylaş!"}
+              </div>
+            </div>
+          )}
+
           {pagedFiltered.map((d,i) => {
-            // Çözüme kavuşmamış ve 24+ saat eski dertlere otomatik badge
             const isUnsolved = !d.solved && d.comments.length===0;
             return (
               <div key={d.id} style={{ position:"relative" }}>
@@ -3436,7 +3529,7 @@ export default function Derthanem() {
                     position:"absolute", top:12, right:12, zIndex:2,
                     fontSize:9, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase",
                     background:"#fff3cd", color:"#856404",
-                    border:"1.5px solid #ffc107", padding:"3px 8px",
+                    border:"1.5px solid #ffc107", borderRadius:6, padding:"3px 8px",
                     pointerEvents:"none"
                   }}>⏳ Derman Bekleniyor</div>
                 )}
@@ -3453,7 +3546,7 @@ export default function Derthanem() {
           {pagedFiltered.length < filtered.length && (
             <button onClick={()=>setPage(p=>p+1)}
               style={{ width:"100%", padding:"14px", background:bg0, color:fg,
-                border:`2px solid ${bdr}`, cursor:"pointer",
+                border:`1.5px solid ${bdr}`, borderRadius:10, cursor:"pointer",
                 fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
                 letterSpacing:.5, marginTop:8, transition:"all .15s" }}>
               Daha Fazla Göster ({filtered.length - pagedFiltered.length} dert daha)
