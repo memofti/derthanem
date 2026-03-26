@@ -3017,11 +3017,25 @@ export default function Derthanem() {
               </div>
             ) : notifs.map(n => (
               <div key={n.id} onClick={async()=>{
+                // Okundu işaretle
                 if (!n.is_read) {
                   await supabase.from("notifications").update({is_read:true}).eq("id",n.id);
                   setNotifs(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x));
                 }
-                if (n.dert_id) { setScreen("app"); setTab("feed"); setOpenId(n.dert_id); }
+                // Derte git
+                if (n.dert_id) {
+                  setScreen("app");
+                  setTab("feed");
+                  setCat("Hepsi");
+                  setPage(1);
+                  setTimeout(()=>{
+                    setOpenId(n.dert_id);
+                    setTimeout(()=>{
+                      const el = document.getElementById("dert-"+n.dert_id);
+                      if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
+                    }, 400);
+                  }, 100);
+                }
               }} style={{
                 background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
                 border: `1.5px solid ${n.is_read ? bdr : "#27ae60"}`,
