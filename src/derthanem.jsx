@@ -1477,7 +1477,8 @@ export default function Derthanem() {
   const [userAvatar, setUserAvatar] = useState(null);  // seçili emoji avatar
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [adminReports, setAdminReports] = useState([]);
-  const [adminTab, setAdminTab]         = useState("sikayet"); // sikayet | dertler | dermanlar
+  const [adminTab, setAdminTab]         = useState("sikayet");
+  const [adminSearch, setAdminSearch]   = useState(""); // sikayet | dertler | dermanlar
   const [boardTab, setBoardTab]         = useState("all");
   const [showOnboard, setShowOnboard]   = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -2266,7 +2267,7 @@ export default function Derthanem() {
             ["dertler", `📋 Tüm Dertler (${derts.length})`],
             ["dermanlar", `💬 Tüm Dermanlar (${derts.reduce((a,d)=>a+d.comments.length,0)})`],
           ].map(([id, label]) => (
-            <button key={id} onClick={()=>setAdminTab(id)}
+            <button key={id} onClick={()=>{ setAdminTab(id); setAdminSearch(""); }}
               style={{ flex:1, padding:"9px 8px", border:"none", borderRadius:9,
                 fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
                 cursor:"pointer", transition:"all .2s",
@@ -2387,111 +2388,177 @@ export default function Derthanem() {
         {/* ── TÜM DERTLER ── */}
         {adminTab === "dertler" && (
           <div>
-            {[...derts].sort((a,b)=>b.ts-a.ts).map(d => (
-              <div key={d.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
-                borderRadius:12, padding:"14px 18px", marginBottom:10,
-                display:"flex", gap:12, alignItems:"flex-start",
-                boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
-                    <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5,
-                      textTransform:"uppercase",
-                      background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
-                      color:"#fff", padding:"2px 8px", borderRadius:4 }}>{d.category}</span>
-                    {d.solved && <span style={{ fontSize:9, background:"#fff3cd",
-                      color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ Çözüldü</span>}
-                    {d.closed && !d.solved && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
-                      color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>🔒 Kapalı</span>}
-                  </div>
-                  <div style={{ fontWeight:700, fontSize:14, marginBottom:2, color:fg }}>{d.title}</div>
-                  <div style={{ fontSize:12, color:muted, marginBottom:4 }}>
-                    {d.content.slice(0,80)}{d.content.length>80?"...":""}
-                  </div>
-                  <div style={{ fontSize:10, color:muted }}>
-                    {d.author} · {d.comments.length} derman · {new Date(d.ts).toLocaleString("tr-TR")}
-                  </div>
+            {/* Arama */}
+            <div style={{ position:"relative", marginBottom:16 }}>
+              <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)",
+                fontSize:14, opacity:.4, pointerEvents:"none" }}>🔍</span>
+              <input value={adminSearch} onChange={e=>setAdminSearch(e.target.value)}
+                placeholder="Dert başlığı, içerik veya yazar ara..."
+                style={{ width:"100%", padding:"11px 13px 11px 38px", boxSizing:"border-box",
+                  border:`1.5px solid ${bdr}`, borderRadius:10, fontSize:13,
+                  background:bg0, color:fg, outline:"none",
+                  fontFamily:"'Inter',system-ui,sans-serif" }}/>
+              {adminSearch && (
+                <button onClick={()=>setAdminSearch("")}
+                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                    background:"none", border:"none", cursor:"pointer", fontSize:16, color:muted }}>✕</button>
+              )}
+            </div>
+            {(() => {
+              const q = adminSearch.toLowerCase();
+              const filtered = [...derts]
+                .sort((a,b)=>b.ts-a.ts)
+                .filter(d => !q ||
+                  d.title.toLowerCase().includes(q) ||
+                  d.content.toLowerCase().includes(q) ||
+                  d.author.toLowerCase().includes(q) ||
+                  d.category.toLowerCase().includes(q)
+                );
+              return (<>
+                <div style={{ fontSize:11, color:muted, marginBottom:12 }}>
+                  {filtered.length} sonuç{adminSearch ? ` — "${adminSearch}"` : ""}
                 </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
-                  <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(d.id); }}
-                    style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
-                      border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
-                    Görüntüle
-                  </button>
-                  {d.solved && (
-                    <button onClick={async()=>{
-                      if (!window.confirm("Dermana Ulaştı durumunu sıfırlayalım mı?")) return;
-                      await supabase.from("derts").update({ solved: false }).eq("id", d.id);
-                      const goldComment = d.comments.find(c=>c.stars===10&&c.ownerRated);
-                      if (goldComment) await supabase.from("comments").update({ stars:0, owner_rated:false, badge:null }).eq("id", goldComment.id);
-                      await loadDerts(); showToast("edit_dert");
-                    }} style={{ padding:"5px 12px", background:"#fff3cd", color:"#856404",
-                      border:"1px solid #ffc107", borderRadius:6, cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
-                      ⭐ Sıfırla
-                    </button>
-                  )}
-                  <button onClick={async()=>{
-                    if (!window.confirm(`"${d.title}" silinsin mi?`)) return;
-                    await supabase.from("derts").delete().eq("id", d.id);
-                    await loadDerts(); showToast("deleted");
-                  }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
-                    border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
-                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
-                    Sil
-                  </button>
-                </div>
-              </div>
-            ))}
+                {filtered.map(d => (
+                  <div key={d.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                    borderRadius:12, padding:"14px 18px", marginBottom:10,
+                    display:"flex", gap:12, alignItems:"flex-start",
+                    boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
+                        <span style={{ fontSize:9, fontWeight:700, letterSpacing:1.5,
+                          textTransform:"uppercase",
+                          background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                          color:"#fff", padding:"2px 8px", borderRadius:4 }}>{d.category}</span>
+                        {d.solved && <span style={{ fontSize:9, background:"#fff3cd",
+                          color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ Çözüldü</span>}
+                        {d.closed && !d.solved && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
+                          color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>🔒 Kapalı</span>}
+                        <span style={{ fontSize:10, color:muted, marginLeft:"auto" }}>#{d.id}</span>
+                      </div>
+                      <div style={{ fontWeight:700, fontSize:14, marginBottom:2, color:fg }}>{d.title}</div>
+                      <div style={{ fontSize:12, color:muted, marginBottom:4 }}>
+                        {d.content.slice(0,80)}{d.content.length>80?"...":""}
+                      </div>
+                      <div style={{ fontSize:10, color:muted }}>
+                        👤 {d.author} · 💬 {d.comments.length} derman · {new Date(d.ts).toLocaleString("tr-TR")}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(d.id); }}
+                        style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
+                          border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                        Görüntüle
+                      </button>
+                      {d.solved && (
+                        <button onClick={async()=>{
+                          if (!window.confirm("Dermana Ulaştı durumunu sıfırlayalım mı?")) return;
+                          await supabase.from("derts").update({ solved: false }).eq("id", d.id);
+                          const goldComment = d.comments.find(c=>c.stars===10&&c.ownerRated);
+                          if (goldComment) await supabase.from("comments").update({ stars:0, owner_rated:false, badge:null }).eq("id", goldComment.id);
+                          await loadDerts(); showToast("edit_dert");
+                        }} style={{ padding:"5px 12px", background:"#fff3cd", color:"#856404",
+                          border:"1px solid #ffc107", borderRadius:6, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                          ⭐ Sıfırla
+                        </button>
+                      )}
+                      <button onClick={async()=>{
+                        if (!window.confirm(`"${d.title}" silinsin mi?`)) return;
+                        await supabase.from("derts").delete().eq("id", d.id);
+                        await loadDerts(); showToast("deleted");
+                      }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
+                        border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                        Sil
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>);
+            })()}
           </div>
         )}
 
         {/* ── TÜM DERMANLAR ── */}
         {adminTab === "dermanlar" && (
           <div>
-            {derts.flatMap(d=>d.comments.map(c=>({...c,dertTitle:d.title,dertId:d.id})))
-              .sort((a,b)=>b.id-a.id).map(c => (
-              <div key={c.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
-                borderRadius:12, padding:"14px 18px", marginBottom:10,
-                display:"flex", gap:12, alignItems:"flex-start",
-                boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:9, color:muted, fontWeight:700, letterSpacing:1,
-                    textTransform:"uppercase", marginBottom:4 }}>"{c.dertTitle?.slice(0,50)}"</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                    <span style={{ fontWeight:700, fontSize:13, color:fg }}>{c.author}</span>
-                    {c.badge === "gold" && <span style={{ fontSize:9, background:"#fff3cd",
-                      color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ ALTIN</span>}
-                    {c.badge === "silver" && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
-                      color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>✦ GÜMÜŞ</span>}
-                    {c.ownerRated && <span style={{ fontSize:10, color:"#27ae60", fontWeight:700 }}>{c.stars}/10</span>}
-                  </div>
-                  <div style={{ fontSize:13, color:muted, lineHeight:1.5 }}>
-                    {c.text.slice(0,120)}{c.text.length>120?"...":""}
-                  </div>
+            {/* Arama */}
+            <div style={{ position:"relative", marginBottom:16 }}>
+              <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)",
+                fontSize:14, opacity:.4, pointerEvents:"none" }}>🔍</span>
+              <input value={adminSearch} onChange={e=>setAdminSearch(e.target.value)}
+                placeholder="Derman metni veya yazar ara..."
+                style={{ width:"100%", padding:"11px 13px 11px 38px", boxSizing:"border-box",
+                  border:`1.5px solid ${bdr}`, borderRadius:10, fontSize:13,
+                  background:bg0, color:fg, outline:"none",
+                  fontFamily:"'Inter',system-ui,sans-serif" }}/>
+              {adminSearch && (
+                <button onClick={()=>setAdminSearch("")}
+                  style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                    background:"none", border:"none", cursor:"pointer", fontSize:16, color:muted }}>✕</button>
+              )}
+            </div>
+            {(() => {
+              const q = adminSearch.toLowerCase();
+              const allComments = derts.flatMap(d=>d.comments.map(c=>({...c,dertTitle:d.title,dertId:d.id})))
+                .sort((a,b)=>b.id-a.id)
+                .filter(c => !q ||
+                  c.text.toLowerCase().includes(q) ||
+                  c.author.toLowerCase().includes(q) ||
+                  c.dertTitle?.toLowerCase().includes(q)
+                );
+              return (<>
+                <div style={{ fontSize:11, color:muted, marginBottom:12 }}>
+                  {allComments.length} sonuç{adminSearch ? ` — "${adminSearch}"` : ""}
                 </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
-                  <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(c.dertId); }}
-                    style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
-                      border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
-                      fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
-                    Derte Git
-                  </button>
-                  <button onClick={async()=>{
-                    if (!window.confirm("Bu dermanı silmek istiyor musun?")) return;
-                    if (c.ownerRated && c.stars === 10) {
-                      await supabase.from("derts").update({ solved: false }).eq("id", c.dertId);
-                    }
-                    await supabase.from("comments").delete().eq("id", c.id);
-                    await loadDerts(); showToast("deleted");
-                  }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
-                    border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
-                    fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
-                    Sil
-                  </button>
-                </div>
-              </div>
-            ))}
+                {allComments.map(c => (
+                  <div key={c.id} style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                    borderRadius:12, padding:"14px 18px", marginBottom:10,
+                    display:"flex", gap:12, alignItems:"flex-start",
+                    boxShadow:"0 2px 6px rgba(0,0,0,.04)" }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:9, color:muted, fontWeight:700, letterSpacing:1,
+                        textTransform:"uppercase", marginBottom:4 }}>
+                        "{c.dertTitle?.slice(0,60)}"
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                        <span style={{ fontWeight:700, fontSize:13, color:fg }}>{c.author}</span>
+                        {c.isAnon && <span style={{ fontSize:9, color:muted, fontWeight:600 }}>anonim</span>}
+                        {c.badge === "gold" && <span style={{ fontSize:9, background:"#fff3cd",
+                          color:"#856404", padding:"2px 8px", borderRadius:4, fontWeight:700 }}>⭐ ALTIN</span>}
+                        {c.badge === "silver" && <span style={{ fontSize:9, background:dark?"#333":"#f5f5f5",
+                          color:muted, padding:"2px 8px", borderRadius:4, fontWeight:700 }}>✦ GÜMÜŞ</span>}
+                        {c.ownerRated && <span style={{ fontSize:10, color:"#27ae60", fontWeight:700 }}>{c.stars}/10</span>}
+                      </div>
+                      <div style={{ fontSize:13, color:fg, lineHeight:1.5 }}>
+                        {c.text.slice(0,150)}{c.text.length>150?"...":""}
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+                      <button onClick={()=>{ setScreen("app"); setTab("feed"); setCat("Hepsi"); setOpenId(c.dertId); }}
+                        style={{ padding:"5px 12px", background:dark?"#2a2a2a":"#f5f5f5", color:fg,
+                          border:`1px solid ${bdr}`, borderRadius:6, cursor:"pointer",
+                          fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                        Derte Git
+                      </button>
+                      <button onClick={async()=>{
+                        if (!window.confirm("Bu dermanı silmek istiyor musun?")) return;
+                        if (c.ownerRated && c.stars === 10) {
+                          await supabase.from("derts").update({ solved: false }).eq("id", c.dertId);
+                        }
+                        await supabase.from("comments").delete().eq("id", c.id);
+                        await loadDerts(); showToast("deleted");
+                      }} style={{ padding:"5px 12px", background:"#fff0f0", color:"#c0392b",
+                        border:"1px solid #ffcccc", borderRadius:6, cursor:"pointer",
+                        fontFamily:"'Inter',system-ui,sans-serif", fontSize:10, fontWeight:700 }}>
+                        Sil
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>);
+            })()}
           </div>
         )}
 
