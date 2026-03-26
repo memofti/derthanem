@@ -234,9 +234,16 @@ function computeStats(derts) {
 function Av({ char, inv, size=36 }) {
   return (
     <div style={{ width:size, height:size, borderRadius:"50%", flexShrink:0,
-      background: inv ? "#fff" : "#111", border:`2px solid ${inv?"#111":"#fff"}`,
+      background: inv
+        ? "linear-gradient(135deg,#fff 0%,#f0f0f0 100%)"
+        : "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+      border: inv ? "2px solid #e0e0e0" : "2px solid #333",
       display:"flex", alignItems:"center", justifyContent:"center",
-      fontSize:Math.floor(size*0.38), fontWeight:800, color: inv?"#111":"#fff",
+      fontSize:Math.floor(size*0.38), fontWeight:800,
+      color: inv?"#111":"#fff",
+      boxShadow: inv
+        ? "0 2px 8px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.9)"
+        : "0 4px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1)",
       fontFamily:"'Inter',system-ui,sans-serif", userSelect:"none" }}>{char}</div>
   );
 }
@@ -269,7 +276,7 @@ function Badge({ type }) {
   );
 }
 
-function StarPicker({ onChange }) {
+function StarPicker({ onChange, dark=false }) {
   const [hov, setHov] = useState(0);
   const [sel, setSel] = useState(0);
 
@@ -284,11 +291,11 @@ function StarPicker({ onChange }) {
 
   const getColor = (n) => {
     const active = hov > 0 ? hov : sel;
-    if (n > active) return { bg:"#f5f5f5", fg:"#aaa", bdr:"#ddd" };
-    if (n <= 3) return { bg:"#fff3cd", fg:"#856404", bdr:"#ffc107" };
-    if (n <= 6) return { bg:"#d1ecf1", fg:"#0c5460", bdr:"#17a2b8" };
-    if (n <= 9) return { bg:"#d4edda", fg:"#155724", bdr:"#28a745" };
-    return { bg:"#111", fg:"#fff", bdr:"#111" };
+    if (n > active) return { bg:dark?"#2a2a2a":"#f5f5f5", fg:dark?"#555":"#aaa", bdr:dark?"#333":"#ddd", shadow:"none" };
+    if (n <= 3)  return { bg:"linear-gradient(160deg,#fff7e0 0%,#fff3cd 100%)", fg:"#856404", bdr:"#ffc107", shadow:"0 2px 6px rgba(255,193,7,.3)" };
+    if (n <= 6)  return { bg:"linear-gradient(160deg,#e8f7f9 0%,#d1ecf1 100%)", fg:"#0c5460", bdr:"#17a2b8", shadow:"0 2px 6px rgba(23,162,184,.3)" };
+    if (n <= 9)  return { bg:"linear-gradient(160deg,#e8f5e9 0%,#d4edda 100%)", fg:"#155724", bdr:"#28a745", shadow:"0 2px 6px rgba(40,167,69,.3)" };
+    return { bg:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", fg:"#fff", bdr:"transparent", shadow:"0 4px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15)" };
   };
 
   return (
@@ -303,12 +310,14 @@ function StarPicker({ onChange }) {
               onTouchStart={()=>setHov(n)}
               onClick={()=>handleClick(n)}
               style={{
-                width:36, height:36, border:`2px solid ${bdr}`,
+                width:36, height:36, border:`1.5px solid ${bdr}`,
                 background:bg, color:fg,
                 cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
                 fontSize:13, fontWeight:900,
-                transition:"all .1s",
-                transform: hov===n ? "scale(1.2)" : "scale(1)",
+                borderRadius:8,
+                boxShadow: shadow,
+                transition:"all .15s cubic-bezier(.22,1,.36,1)",
+                transform: hov===n ? "scale(1.2) translateY(-2px)" : "scale(1)",
                 flexShrink:0,
               }}>{n}</button>
           );
@@ -382,17 +391,20 @@ function AuthModal({ mode, onClose, onAuth, onVerifyEmail }) {
 
   return (
     <div onClick={onClose} style={{ position:"fixed", inset:0, zIndex:3000,
-      background:"rgba(0,0,0,.6)", backdropFilter:"blur(4px)",
+      background:"rgba(0,0,0,.6)", backdropFilter:"blur(8px)",
+      WebkitBackdropFilter:"blur(8px)",
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:"#fff", width:"100%", maxWidth:400,
-        border:"2px solid #111", boxShadow:"8px 8px 0 #111", fontFamily:"'Inter',system-ui,sans-serif" }}>
-        <div style={{ display:"flex", borderBottom:"2px solid #111" }}>
+        padding:"0", borderRadius:20, overflow:"hidden",
+        boxShadow:"0 24px 64px rgba(0,0,0,.2), 0 4px 16px rgba(0,0,0,.1)" }}>
+        <div style={{ display:"flex" }}>
           {[["login","Giriş Yap"],["register","Üye Ol"]].map(([t,l]) => (
-            <button key={t} onClick={() => { setTab(t); setErr(""); }} style={{ flex:1, padding:"14px", border:"none",
-              background:tab===t?"#111":"#f2f2f2", color:tab===t?"#fff":"#888",
-              cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:700,
-              letterSpacing:1.5, textTransform:"uppercase",
-              borderRight:t==="login"?"2px solid #111":"none" }}>{l}</button>
+            <button key={t} onClick={() => { setTab(t); setErr(""); }} style={{ flex:1, padding:"16px", border:"none",
+              background: tab===t
+                ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                : "#f5f5f5",
+              color:tab===t?"#fff":"#888",
+              borderRight: t==="login" ? "1px solid rgba(0,0,0,.1)" : "none" }}>{l}</button>
           ))}
         </div>
         <div style={{ padding:"24px 24px 20px" }}>
@@ -403,10 +415,16 @@ function AuthModal({ mode, onClose, onAuth, onVerifyEmail }) {
             <label style={lS}>Cinsiyet</label>
             <div style={{ display:"flex", gap:8, marginBottom:12 }}>
               {["female","male"].map(g => (
-                <button key={g} onClick={() => setF(p=>({...p,gender:g}))} style={{ flex:1, padding:"9px",
-                  border:"2px solid #111", background:f.gender===g?"#111":"#fff",
-                  color:f.gender===g?"#fff":"#111",
-                  cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700 }}>
+                <button key={g} onClick={() => setF(p=>({...p,gender:g}))} style={{ flex:1, padding:"10px",
+                  border: f.gender===g ? "none" : "1.5px solid #e0e0e0",
+                  borderRadius:10,
+                  background: f.gender===g
+                    ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                    : "#f9f9f9",
+                  color: f.gender===g ? "#fff" : "#666",
+                  boxShadow: f.gender===g ? "0 2px 8px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08)" : "none",
+                  cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
+                  transition:"all .2s" }}>
                   {g==="female"?"Kadın":"Erkek"}
                 </button>
               ))}
@@ -580,8 +598,9 @@ function Onboarding({ onClose, fg, bg0, bdr }) {
   return (
     <div style={{ position:"fixed", inset:0, zIndex:5000, background:"rgba(0,0,0,.7)",
       display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-      <div style={{ background:bg0, border:`2px solid ${bdr}`, maxWidth:400, width:"100%",
-        boxShadow:"8px 8px 0 #111", fontFamily:"'Inter',system-ui,sans-serif",
+      <div style={{ background:bg0, border:`1px solid ${bdr}`, maxWidth:400, width:"100%",
+        borderRadius:16, overflow:"hidden",
+        boxShadow:"0 24px 64px rgba(0,0,0,.2)", fontFamily:"'Inter',system-ui,sans-serif",
         animation:"fadeScale .3s cubic-bezier(.22,1,.36,1) both" }}>
 
         {/* Üst çubuk */}
@@ -693,7 +712,7 @@ function Landing({ onDert, onDerman }) {
           transition:transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, opacity .2s;
           animation:fadeIn 1s ease both; animation-delay:.5s;
         }
-        .lbtn-dark  { background:#111; color:#fff; border-color:#111; }
+        .lbtn-dark  { background:linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%); color:#fff; border-color:transparent; box-shadow:0 4px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.1); }
         .lbtn-light { background:transparent; color:#fff; border-color:rgba(255,255,255,.6); }
         .l-deco {
           position:absolute; font-size:9px; letter-spacing:4px;
@@ -803,21 +822,31 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
   return (
     <div id={"dert-"+dert.id} className={`dert-card${isNew?" dert-new":""}`} style={{
       background: dert.solved ? "#fffbeb" : cardBg,
-      border: dert.solved ? "2px solid #f39c12" : `2px solid ${cardBdr}`,
+      border: dert.solved ? "2px solid #f39c12" : `1.5px solid ${cardBdr}`,
+      borderRadius: 12,
       marginBottom:16,
-      boxShadow: dert.solved ? "6px 6px 0 #f39c12" : isClosed ? "3px 3px 0 #bbb" : "none",
-      opacity: isClosed ? .72 : 1,
-      transition:"box-shadow .3s, transform .18s",
+      boxShadow: dert.solved
+        ? "0 4px 20px rgba(243,156,18,.2), 6px 6px 0 #f39c12"
+        : isClosed
+        ? "0 2px 8px rgba(0,0,0,.06)"
+        : "0 2px 12px rgba(0,0,0,.07)",
+      opacity: isClosed ? .75 : 1,
+      transition:"box-shadow .2s, transform .2s",
       position:"relative", overflow:"hidden" }}>
 
       {/* Dermana Ulaştı — üst şerit */}
       {dert.solved && (
-        <div style={{ background:"#f39c12", color:"#fff", padding:"10px 20px",
+        <div style={{
+          background:"linear-gradient(135deg,#f39c12 0%,#e67e22 50%,#d35400 100%)",
+          color:"#fff", padding:"11px 20px",
           display:"flex", alignItems:"center", justifyContent:"center", gap:10,
-          borderBottom:"2px solid #e67e22" }}>
+          borderBottom:"1px solid rgba(0,0,0,.15)",
+          boxShadow:"inset 0 1px 0 rgba(255,255,255,.2)" }}>
           <span style={{ fontSize:18 }}>⭐</span>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:3,
-            textTransform:"uppercase" }}>Bu Dert Dermana Ulaştı!</div>
+            textTransform:"uppercase", textShadow:"0 1px 2px rgba(0,0,0,.2)" }}>
+            Bu Dert Dermana Ulaştı!
+          </div>
           <span style={{ fontSize:18 }}>⭐</span>
         </div>
       )}
@@ -1076,11 +1105,16 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                 const isEditing   = editingId === c.id;
                 return (
                   <div key={c.id} style={{
-                    background: isBest ? "#111" : cardBg,
+                    background: isBest
+                      ? "linear-gradient(160deg,#2d2d2d 0%,#111 50%,#080808 100%)"
+                      : cardBg,
                     color: isBest ? "#fff" : fgCard,
                     borderBottom: `1px solid ${dark?"#2a2a2a":"#ebebeb"}`,
                     borderLeft: isBest ? "4px solid #f39c12" : `4px solid ${dark?"#333":"#e0e0e0"}`,
+                    borderRadius: "0 8px 8px 0",
                     padding:"14px 16px 14px 18px",
+                    marginBottom: 6,
+                    boxShadow: isBest ? "0 2px 12px rgba(243,156,18,.15)" : "none",
                   }}>
                     {/* Derman yazar satırı */}
                     <div style={{ display:"flex", alignItems:"center", gap:8,
@@ -1122,7 +1156,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                           autoFocus/>
                         <div style={{ display:"flex", gap:6 }}>
                           <button onClick={saveEdit} style={{ padding:"6px 14px",
-                            background:"#111", color:"#fff", border:"2px solid #111",
+                            background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
                             cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
                             fontSize:11, fontWeight:700 }}>Kaydet</button>
                           <button onClick={()=>setEditingId(null)} style={{ padding:"6px 14px",
@@ -1191,7 +1225,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                           textTransform:"uppercase", color:mutedCard, marginBottom:8 }}>
                           Bu dermanı puanla (1–10)
                         </div>
-                        <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)}/>
+                        <StarPicker onChange={stars=>onRate(dert.id,c.id,stars)} dark={dark}/>
                       </div>
                     )}
                   </div>
@@ -1201,7 +1235,8 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
               {/* Derman yaz kutusu */}
               {!owned && !isClosed && !dert.solved && user && (
                 <div style={{ padding:"16px", background:cardBg,
-                  borderTop:`2px dashed ${dark?"#2a2a2a":"#e8e8e8"}` }}>
+                  borderTop:`2px dashed ${dark?"#2a2a2a":"#e8e8e8"}`,
+                  borderRadius:"0 0 12px 12px" }}>
                   <div style={{ fontSize:9, fontWeight:800, letterSpacing:2,
                     textTransform:"uppercase", color:mutedCard, marginBottom:10 }}>
                     ✦ Dermanını Yaz
@@ -1318,6 +1353,8 @@ function CSS() {
     <style>{[
       /* Google Fonts */
       "@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap');",
+      /* CSS Variables */
+      ":root{--g-dark:linear-gradient(160deg,#2a2a2a 0%,#111 50%,#0a0a0a 100%);--g-dark-hover:linear-gradient(160deg,#333 0%,#1a1a1a 50%,#0f0f0f 100%);--g-dark-soft:linear-gradient(135deg,#222 0%,#111 100%);--shadow-dark:0 4px 12px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08);--shadow-dark-hover:0 8px 24px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.1);}",
       /* Keyframes */
       "@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}",
       "@keyframes fuUp{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}",
@@ -1328,34 +1365,38 @@ function CSS() {
       "@keyframes stampIn{from{opacity:0;transform:rotate(-6deg) scale(1.4)}to{opacity:1;transform:rotate(-6deg) scale(1)}}",
       "@keyframes newCard{0%{opacity:0;transform:translateY(-24px) scale(.96)}60%{transform:translateY(4px) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}",
       "@keyframes fadeScale{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}",
-      "@keyframes slideRight{from{transform:scaleX(0)}to{transform:scaleX(1)}}",
+      "@keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}",
       /* Base font */
       "*{box-sizing:border-box;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}",
       "body{font-family:'Inter',system-ui,sans-serif;}",
-      /* Display headings use Playfair */
       ".dh{font-family:'Playfair Display',Georgia,serif;font-weight:900;}",
       /* Cards */
       ".dc{animation:fu .35s cubic-bezier(.22,1,.36,1) both}",
       ".stamp{animation:stampIn .45s cubic-bezier(.175,.885,.32,1.275) both}",
       ".dert-card{transition:transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease;}",
-      ".dert-new{animation:newCard .55s cubic-bezier(.175,.885,.32,1.275) both;outline:2.5px solid #111;outline-offset:3px}",
-      /* Hover - desktop only */
-      "@media(hover:hover){.dert-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.08)!important}}",
-      /* Category badge hover */
+      ".dert-new{animation:newCard .55s cubic-bezier(.175,.885,.32,1.275) both;}",
+      /* Hover */
+      "@media(hover:hover){.dert-card:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,0,0,.13)!important}}",
       "@media(hover:hover){.cat-btn:hover{transform:translateY(-1px);opacity:.85}}",
-      /* Button shine effect */
+      /* 3D Dark Buttons */
+      ".btn-dark{background:var(--g-dark)!important;box-shadow:var(--shadow-dark)!important;border:none!important;transition:all .18s cubic-bezier(.22,1,.36,1)!important;}",
+      "@media(hover:hover){.btn-dark:hover{background:var(--g-dark-hover)!important;box-shadow:var(--shadow-dark-hover)!important;transform:translateY(-1px)!important;}}",
+      ".btn-dark:active{transform:translateY(1px)!important;box-shadow:0 2px 6px rgba(0,0,0,.4)!important;}",
+      /* Avatar 3D */
+      ".av-dark{background:var(--g-dark)!important;box-shadow:var(--shadow-dark),inset 0 1px 0 rgba(255,255,255,.12)!important;}",
+      /* Shimmer */
       ".btn-shine{position:relative;overflow:hidden;}",
-      ".btn-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.15) 50%,transparent 60%);background-size:200% 100%;animation:shimmer 2.5s infinite;}",
-      /* Input focus */
-      "textarea:focus,input:focus,select:focus{outline:none;border-color:#111!important;box-shadow:0 0 0 3px rgba(17,17,17,.06)!important}",
+      ".btn-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.12) 50%,transparent 60%);background-size:200% 100%;animation:shimmer 3s infinite;}",
+      /* Solved card animated border */
+      ".solved-card{background-size:200% 200%!important;animation:gradientShift 4s ease infinite!important;}",
+      /* Input */
+      "textarea:focus,input:focus,select:focus{outline:none;border-color:#111!important;box-shadow:0 0 0 3px rgba(17,17,17,.06)!important;border-radius:8px!important}",
       /* Scrollbar */
       "::-webkit-scrollbar{width:4px;height:4px}",
       "::-webkit-scrollbar-track{background:transparent}",
       "::-webkit-scrollbar-thumb{background:#ddd;border-radius:4px}",
       "::-webkit-scrollbar-thumb:hover{background:#bbb}",
-      /* Mobile touch */
       "@media(max-width:600px){.dert-card{margin-bottom:12px}.cat-btn{font-size:10px!important;padding:5px 10px!important}}",
-      /* Fade scale for modals */
       ".modal-enter{animation:fadeScale .25s cubic-bezier(.22,1,.36,1) both}",
     ].join("\n")}</style>
   );
@@ -1365,7 +1406,7 @@ function CSS() {
 function Toast({ toast }) {
   const base = { position:"fixed", top:24, left:"50%", transform:"translateX(-50%)",
     zIndex:9999, fontFamily:"'Inter',system-ui,sans-serif", textAlign:"center",
-    animation:"sd .4s ease", whiteSpace:"nowrap" };
+    animation:"sd .4s ease", whiteSpace:"nowrap", borderRadius:12 };
   if (!toast) return null;
   if (toast.startsWith("solved_")) return (
     <div style={{ ...base, background:"#111", color:"#fff", padding:"16px 40px", boxShadow:"5px 5px 0 #555" }}>
@@ -1924,8 +1965,17 @@ export default function Derthanem() {
   const muted= dark?"#aaa":"#666";
 
   const Header = ({ title, left }) => (
-    <div style={{ position:"sticky", top:0, zIndex:200, background:bg0,
-      borderBottom:`2px solid ${bdr}`, display:"flex", alignItems:"center",
+    <div style={{ position:"sticky", top:0, zIndex:200,
+      background: dark
+        ? "rgba(17,17,17,.92)"
+        : "rgba(255,255,255,.88)",
+      backdropFilter:"blur(12px)",
+      WebkitBackdropFilter:"blur(12px)",
+      borderBottom:`1px solid ${dark?"rgba(255,255,255,.08)":"rgba(0,0,0,.08)"}`,
+      boxShadow: dark
+        ? "0 1px 0 rgba(255,255,255,.04), 0 4px 20px rgba(0,0,0,.3)"
+        : "0 1px 0 rgba(0,0,0,.04), 0 4px 20px rgba(0,0,0,.06)",
+      display:"flex", alignItems:"center",
       justifyContent:"space-between", padding:"0 14px", height:56, minWidth:0, gap:8 }}>
 
       {/* Sol: logo */}
@@ -2120,7 +2170,7 @@ export default function Derthanem() {
           Hesabın aktif. Şimdi giriş yapabilirsin.
         </div>
         <button onClick={()=>{ window.location.hash=""; setScreen("landing"); setAuth("login"); }}
-          style={{ background:"#111", color:"#fff", border:"2px solid #111",
+          style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
             padding:"12px 32px", cursor:"pointer",
             fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
             boxShadow:"3px 3px 0 #555" }}>
@@ -2147,7 +2197,7 @@ export default function Derthanem() {
           Maildeki linke tıklayarak hesabını aktifleştir, sonra giriş yapabilirsin.
         </div>
         <button onClick={()=>{ setVerifyEmail(null); setAuth("login"); }}
-          style={{ background:"#111", color:"#fff", border:"2px solid #111",
+          style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
             padding:"12px 32px", cursor:"pointer",
             fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
             boxShadow:"3px 3px 0 #555", marginBottom:12, width:"100%" }}>
@@ -2317,8 +2367,13 @@ export default function Derthanem() {
       <div style={{ maxWidth:700, margin:"0 auto", padding:"24px 16px 60px" }}>
 
         {/* Profile hero */}
-        <div style={{ background:"#111", color:"#fff", border:"2px solid #111",
-          padding:"26px 26px", marginBottom:20, boxShadow:"6px 6px 0 #444" }}>
+        <div style={{
+          background: dark
+            ? "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)"
+            : "linear-gradient(135deg, #111 0%, #333 100%)",
+          color:"#fff", borderRadius:16,
+          padding:"28px 26px", marginBottom:20,
+          boxShadow:"0 8px 32px rgba(0,0,0,.2)" }}>
           <div style={{ display:"flex", alignItems:"center", gap:18, flexWrap:"wrap" }}>
             {/* Avatar — tıklanabilir emoji seçici */}
             <div style={{ position:"relative" }}>
@@ -2438,7 +2493,7 @@ export default function Derthanem() {
         </div>
 
         {/* Profil Tabları */}
-        <div style={{ display:"flex", gap:0, marginBottom:24, border:`2px solid ${bdr}`, overflow:"hidden" }}>
+        <div style={{ display:"flex", gap:0, marginBottom:24, border:`1.5px solid ${bdr}`, borderRadius:10, overflow:"hidden" }}>
           {[
             ["dertlerim", "📋 Dertlerim"],
             ["bildirimler", "🔔 Bildirimler"],
@@ -2540,7 +2595,9 @@ export default function Derthanem() {
                 background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
                 border: `1.5px solid ${n.is_read ? bdr : "#27ae60"}`,
                 borderLeft: `4px solid ${n.is_read ? bdr : "#27ae60"}`,
+                borderRadius: "0 10px 10px 0",
                 padding:"14px 16px", marginBottom:8, cursor:"pointer",
+                boxShadow: n.is_read ? "none" : "0 2px 12px rgba(39,174,96,.1)",
                 transition:"all .15s"
               }}>
                 <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -2573,7 +2630,7 @@ export default function Derthanem() {
               textTransform:"uppercase", color:muted, marginBottom:16 }}>Hesap Ayarları</div>
 
             {/* Şifre değiştir */}
-            <div style={{ background:bg0, border:`2px solid ${bdr}`, padding:"20px", marginBottom:12 }}>
+            <div style={{ background:bg0, border:`1.5px solid ${bdr}`, borderRadius:12, padding:"20px", marginBottom:12 }}>
               <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:4 }}>🔑 Şifre Değiştir</div>
               <div style={{ fontSize:11, color:muted, marginBottom:14 }}>Hesap güvenliğin için şifreni düzenli değiştir.</div>
               {!showChangePw ? (
@@ -2633,7 +2690,7 @@ export default function Derthanem() {
             </div>
 
             {/* Çıkış ve hesap silme */}
-            <div style={{ background:bg0, border:`2px solid ${bdr}`, padding:"20px" }}>
+            <div style={{ background:bg0, border:`1.5px solid ${bdr}`, borderRadius:12, padding:"20px" }}>
               <div style={{ fontSize:13, fontWeight:800, color:fg, marginBottom:14 }}>Hesap İşlemleri</div>
               <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
                 <button onClick={handleLogout}
@@ -2671,8 +2728,8 @@ export default function Derthanem() {
         {/* Post form */}
         {showPost && user && (
           <div className="dc" style={{ margin:"20px 0 0", background:bg0,
-            border:`2px solid ${bdr}`, padding:"22px 24px",
-            boxShadow:`6px 6px 0 ${dark?"#333":"#111"}` }}>
+            border:`1.5px solid ${bdr}`, borderRadius:16, padding:"22px 24px",
+            boxShadow:`0 8px 32px rgba(0,0,0,.1)` }}>
             <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
               <Av char={user.name[0].toUpperCase()} inv={!dark} size={36}/>
               <div style={{ flex:1, minWidth:0 }}>
@@ -2740,7 +2797,7 @@ export default function Derthanem() {
 
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={handlePost} style={{ flex:1, padding:"12px",
-                background:"#111", color:"#fff", border:"2px solid #111",
+                background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
                 fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
                 cursor:"pointer", letterSpacing:1, boxShadow:"4px 4px 0 #555" }}>
                 Derdimi Paylaş →
@@ -2754,15 +2811,26 @@ export default function Derthanem() {
         )}
 
         {/* Tabs */}
-        <div style={{ display:"flex", borderBottom:`2px solid ${bdr}`, marginTop:24 }}>
+        <div style={{ display:"flex", gap:6, marginTop:20, marginBottom:4,
+          background: dark?"#1a1a1a":"#f0f0f0",
+          padding:4, borderRadius:12 }}>
           {[["feed","Dertler"],["board","Dert Ustaları"],["stats","İstatistikler"]].map(([id,lbl])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{ padding:"11px 16px", border:"none",
+            <button key={id} onClick={()=>setTab(id)} style={{
+              flex:1, padding:"9px 12px", border:"none",
               fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
-              cursor:"pointer", letterSpacing:1.5, textTransform:"uppercase",
-              color:tab===id?"#fff":"#888", background:tab===id?"#111":"transparent" }}>{lbl}</button>
+              cursor:"pointer", letterSpacing:.5, textTransform:"uppercase",
+              borderRadius:9, transition:"all .2s cubic-bezier(.22,1,.36,1)",
+              color: tab===id ? "#fff" : muted,
+              background: tab===id
+                ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                : "transparent",
+              boxShadow: tab===id
+                ? "0 2px 8px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08)"
+                : "none",
+            }}>{lbl}</button>
           ))}
-          {/* Klavye kısayol ipucu — sadece geniş ekran */}
-          <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6,
+          {/* Klavye kısayol ipucu */}
+          <div style={{ display:"flex", alignItems:"center", gap:6,
             paddingRight:4, opacity:.25, flexShrink:0,
             overflow:"hidden", maxWidth:220 }}>
             {[["N","yeni"],["F","feed"],["B","board"],["Esc","kapat"]].map(([k,l])=>(
@@ -2817,12 +2885,16 @@ export default function Derthanem() {
             <style>{`.sort-scroll::-webkit-scrollbar{display:none}`}</style>
             {[["new","🕐 En Yeni"],["mostDerman","💬 En Çok Derman"],["unrated","⏳ Derman Bekleyenler"]].map(([v,l])=>(
               <button key={v} onClick={()=>{ setSortBy(v); setPage(1); }}
-                style={{ flexShrink:0, padding:"5px 11px", fontSize:10, fontWeight:700,
-                  letterSpacing:.5, textTransform:"uppercase",
-                  background:sortBy===v?"#111":bg0, color:sortBy===v?"#fff":muted,
-                  border:`1.5px solid ${sortBy===v?"#111":dark?"#333":"#ddd"}`,
+                style={{ flexShrink:0, padding:"6px 14px", fontSize:10, fontWeight:700,
+                  letterSpacing:.5, textTransform:"uppercase", borderRadius:20,
+                  background: sortBy===v
+                    ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                    : bg0,
+                  color: sortBy===v ? "#fff" : muted,
+                  border: `1.5px solid ${sortBy===v ? "transparent" : dark?"#333":"#e0e0e0"}`,
+                  boxShadow: sortBy===v ? "0 2px 8px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08)" : "none",
                   cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
-                  transition:"all .15s", whiteSpace:"nowrap" }}>{l}</button>
+                  transition:"all .2s", whiteSpace:"nowrap" }}>{l}</button>
             ))}
           </div>
 
@@ -2830,12 +2902,19 @@ export default function Derthanem() {
           <div style={{ display:"flex", gap:6, overflowX:"auto", padding:"12px 0 10px", scrollbarWidth:"none" }}>
             {CATS.map(c=>(
               <button key={c} onClick={()=>{ setCat(c); setPage(1); }}
-                style={{ flexShrink:0, padding:"6px 13px",
-                  background:cat===c?"#111":"#fff", color:cat===c?"#fff":"#555",
-                  border:"2px solid #111", cursor:"pointer",
-                  fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
+                className="cat-btn"
+                style={{ flexShrink:0, padding:"6px 14px",
+                  background: cat===c
+                    ? "linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)"
+                    : bg0,
+                  color: cat===c ? "#fff" : fg,
+                  border: `1.5px solid ${cat===c ? "transparent" : dark?"#333":"#e0e0e0"}`,
+                  borderRadius:20,
+                  boxShadow: cat===c ? "0 2px 8px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08)" : "0 1px 3px rgba(0,0,0,.05)",
+                  cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                  fontSize:11, fontWeight:700,
                   display:"flex", alignItems:"center", gap:4, whiteSpace:"nowrap",
-                  transition:"all .15s" }}>
+                  transition:"all .2s" }}>
                 <span>{CAT_ICONS[c]}</span>{c}
               </button>
             ))}
@@ -2867,7 +2946,7 @@ export default function Derthanem() {
               </div>
               {!search && user && (
                 <button onClick={()=>{ setShowPost(true); }}
-                  style={{ background:"#111", color:"#fff", border:"2px solid #111",
+                  style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
                     padding:"12px 28px", cursor:"pointer",
                     fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
                     letterSpacing:.5, boxShadow:"3px 3px 0 #555" }}>
@@ -2876,7 +2955,7 @@ export default function Derthanem() {
               )}
               {!user && (
                 <button onClick={()=>needAuth("register")}
-                  style={{ background:"#111", color:"#fff", border:"2px solid #111",
+                  style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
                     padding:"12px 28px", cursor:"pointer",
                     fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:700,
                     letterSpacing:.5, boxShadow:"3px 3px 0 #555" }}>
@@ -3017,7 +3096,8 @@ export default function Derthanem() {
                       <div style={{ fontSize:9, color:muted, marginBottom:10 }}>
                         {filtered_board[0].count} derman
                       </div>
-                      <div style={{ height:100, background:"#111",
+                      <div style={{ height:100,
+                        background:"linear-gradient(180deg,#2a2a2a 0%,#111 50%,#050505 100%)",
                         border:"2px solid #111", display:"flex",
                         alignItems:"center", justifyContent:"center", borderBottom:"none",
                         boxShadow:"0 -4px 20px rgba(0,0,0,.15)" }}>
@@ -3125,7 +3205,8 @@ export default function Derthanem() {
                 { label:"Ortalama Derman",value:stats.avgDerman,     icon:"💬", desc:"dert başına" },
               ].map(({label,value,icon,desc})=>(
                 <div key={label} style={{ background:"#fff", border:"2px solid #111",
-                  padding:"18px 16px", boxShadow:"3px 3px 0 #111" }}>
+                  padding:"18px 16px", borderRadius:12,
+                  boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
                   <div style={{ fontSize:22 }}>{icon}</div>
                   <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1px",
                     marginTop:8, lineHeight:1 }}>{value}</div>
@@ -3153,7 +3234,7 @@ export default function Derthanem() {
 
             {/* En çok dert açılan kategori */}
             {stats.topCat && (
-              <div style={{ background:"#111", color:"#fff", border:"2px solid #111",
+              <div style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
                 padding:"18px 20px", marginBottom:10, boxShadow:"4px 4px 0 #555" }}>
                 <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
                   textTransform:"uppercase", opacity:.4, marginBottom:8 }}>
