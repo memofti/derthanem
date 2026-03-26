@@ -798,7 +798,7 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
   const [editingId,   setEditingId]   = useState(null);
   const [editText,    setEditText]    = useState("");
   const [copied,      setCopied]      = useState(false);
-  const [reported,    setReported]    = useState(false);
+  const [reported,    setReported]    = useState(new Set()); // Set of "dertId_commentId" keys
   const [editingDert, setEditingDert] = useState(false);
   const [dertEditForm,setDertEditForm]= useState({ title:dert.title, content:dert.content });
   const taRef = useRef(null);
@@ -823,9 +823,10 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
 
   const handleReport = (commentId) => {
     if (!user) { onNeedAuth("login"); return; }
+    const key = dert.id + "_" + (commentId||"dert");
+    if (reported.has(key)) return; // Zaten şikayet edilmiş
     onReport(dert.id, commentId);
-    setReported(true);
-    setTimeout(()=>setReported(false), 3000);
+    setReported(prev => new Set([...prev, key]));
   };
 
   const isClosed = dert.closed && !dert.solved;
@@ -1040,14 +1041,15 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           {!owned && user && !dert.solved && !isClosed && (
             <button onClick={()=>handleReport(null)}
               style={{ padding:"5px 11px",
-                border: reported ? "1.5px solid #c0392b" : `1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
+                border: reported.has(dert.id+"_dert") ? "1.5px solid #c0392b" : `1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
                 background:"transparent",
-                color: reported ? "#c0392b" : "#e74c3c",
-                cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                color: reported.has(dert.id+"_dert") ? "#c0392b" : "#e74c3c",
+                cursor: reported.has(dert.id+"_dert") ? "default" : "pointer",
+                fontFamily:"'Inter',system-ui,sans-serif",
                 fontSize:11, fontWeight:700, borderRadius:6,
-                transition:"all .2s", opacity: reported ? 1 : .7 }}
+                transition:"all .2s", opacity: reported.has(dert.id+"_dert") ? 1 : .7 }}
               title="Uygunsuz içerik bildir">
-              {reported ? "✓ Bildirildi" : "⚑ Bildir"}
+              {reported.has(dert.id+"_dert") ? "✓ Bildirildi" : "⚑ Bildir"}
             </button>
           )}
 
@@ -1212,13 +1214,16 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                         )}
                         {/* Şikayet */}
                         {user && !isMyComment && (
-                          <button onClick={()=>onReport(dert.id, c.id)}
-                            style={{ padding:"3px 10px", border:`1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
-                              background:"transparent", color:"#e74c3c",
-                              cursor:"pointer", fontSize:10, fontWeight:700,
-                              borderRadius:6, transition:"all .15s", opacity:.7 }}
+                          <button onClick={()=>handleReport(c.id)}
+                            style={{ padding:"3px 10px",
+                              border: reported.has(dert.id+"_"+c.id) ? "1.5px solid #c0392b" : `1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
+                              background:"transparent",
+                              color: reported.has(dert.id+"_"+c.id) ? "#c0392b" : "#e74c3c",
+                              cursor: reported.has(dert.id+"_"+c.id) ? "default" : "pointer",
+                              fontSize:10, fontWeight:700, borderRadius:6,
+                              transition:"all .15s", opacity: reported.has(dert.id+"_"+c.id) ? 1 : .7 }}
                             title="Uygunsuz içerik bildir">
-                            ⚑ Bildir
+                            {reported.has(dert.id+"_"+c.id) ? "✓ Bildirildi" : "⚑ Bildir"}
                           </button>
                         )}
                         {/* Puan */}
