@@ -3529,42 +3529,43 @@ export default function Derthanem() {
         {/* ── İSTATİSTİKLER ── */}
         {tab==="stats" && (
           <div style={{ paddingTop:22 }}>
-            <div style={{ paddingBottom:18, marginBottom:20, borderBottom:"2px solid #111" }}>
+            <div style={{ paddingBottom:18, marginBottom:20, borderBottom:`1.5px solid ${bdr}` }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:4,
-                textTransform:"uppercase", color:"#888", marginBottom:5 }}>Anlık Veriler</div>
-              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px" }}>Topluluk İstatistikleri</div>
+                textTransform:"uppercase", color:muted, marginBottom:5 }}>Anlık Veriler</div>
+              <div style={{ fontSize:26, fontWeight:900, letterSpacing:"-1px", color:fg,
+                fontFamily:"'Playfair Display',Georgia,serif" }}>Topluluk İstatistikleri</div>
             </div>
 
             {/* Ana metrik kartları */}
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:16 }}>
               {[
-                { label:"Toplam Dert",    value:stats.total,         icon:"😔", desc:"paylaşılan" },
-                { label:"Dermana Ulaştı", value:stats.solved,        icon:"⭐", desc:"çözüldü" },
-                { label:"Derman Bekleniyor", value:stats.waiting,    icon:"⏳", desc:"henüz yanıt yok" },
-                { label:"Ortalama Derman",value:stats.avgDerman,     icon:"💬", desc:"dert başına" },
+                { label:"Toplam Dert",    value:stats.total,      icon:"😔", desc:"paylaşılan" },
+                { label:"Dermana Ulaştı", value:stats.solved,     icon:"⭐", desc:"çözüldü" },
+                { label:"Derman Bekliyor",value:stats.waiting,    icon:"⏳", desc:"henüz yanıt yok" },
+                { label:"Ort. Derman",    value:stats.avgDerman,  icon:"💬", desc:"dert başına" },
               ].map(({label,value,icon,desc})=>(
                 <div key={label} style={{ background:bg0, border:`1.5px solid ${bdr}`,
                   padding:"18px 16px", borderRadius:12,
                   boxShadow:"0 2px 8px rgba(0,0,0,.06)" }}>
                   <div style={{ fontSize:22 }}>{icon}</div>
                   <div style={{ fontSize:28, fontWeight:900, letterSpacing:"-1px",
-                    marginTop:8, lineHeight:1 }}>{value}</div>
+                    marginTop:8, lineHeight:1, color:fg }}>{value}</div>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5,
-                    textTransform:"uppercase", color:"#666", marginTop:6 }}>{label}</div>
-                  <div style={{ fontSize:10, color:"#888", marginTop:2 }}>{desc}</div>
+                    textTransform:"uppercase", color:muted, marginTop:6 }}>{label}</div>
+                  <div style={{ fontSize:10, color:muted, marginTop:2 }}>{desc}</div>
                 </div>
               ))}
             </div>
 
             {/* Kapatılan dertler */}
             {stats.closed > 0 && (
-              <div style={{ background:"#f5f5f5", border:"1.5px solid #ddd",
-                padding:"14px 18px", marginBottom:10, display:"flex",
+              <div style={{ background:dark?"#2a2a2a":bg0, border:`1.5px solid ${bdr}`,
+                borderRadius:10, padding:"14px 18px", marginBottom:10, display:"flex",
                 alignItems:"center", gap:12 }}>
                 <span style={{ fontSize:20 }}>🔒</span>
                 <div>
-                  <div style={{ fontWeight:700, fontSize:14 }}>{stats.closed} dert kapatıldı</div>
-                  <div style={{ fontSize:11, color:"#666", marginTop:2 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:fg }}>{stats.closed} dert kapatıldı</div>
+                  <div style={{ fontSize:11, color:muted, marginTop:2 }}>
                     Sahipleri "Derdim Geçti" dedi — derman gelmese de iyileştiler
                   </div>
                 </div>
@@ -3573,8 +3574,10 @@ export default function Derthanem() {
 
             {/* En çok dert açılan kategori */}
             {stats.topCat && (
-              <div style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)", color:"#fff", border:"1px solid #1a1a1a",
-                padding:"18px 20px", marginBottom:10, boxShadow:"4px 4px 0 #555" }}>
+              <div style={{ background:"linear-gradient(160deg,#2d2d2d 0%,#111 55%,#080808 100%)",
+                color:"#fff", border:"none", borderRadius:12,
+                padding:"18px 20px", marginBottom:10,
+                boxShadow:"0 4px 16px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08)" }}>
                 <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
                   textTransform:"uppercase", opacity:.4, marginBottom:8 }}>
                   En Çok Dert Açılan Kategori
@@ -3583,7 +3586,7 @@ export default function Derthanem() {
                   <span style={{ fontSize:28 }}>{CAT_ICONS[stats.topCat[0]]}</span>
                   <div>
                     <div style={{ fontSize:20, fontWeight:900 }}>{stats.topCat[0]}</div>
-                    <div style={{ fontSize:12, opacity:.4, marginTop:2 }}>
+                    <div style={{ fontSize:12, opacity:.5, marginTop:2 }}>
                       {stats.topCat[1]} dert · toplam dertin %{Math.round(stats.topCat[1]/stats.total*100)}'i
                     </div>
                   </div>
@@ -3592,10 +3595,10 @@ export default function Derthanem() {
             )}
 
             {/* Kategori dağılımı */}
-            <div style={{ background:"#fff", border:"2px solid #111",
-              padding:"18px 20px", marginBottom:10 }}>
+            <div style={{ background:bg0, border:`1.5px solid ${bdr}`,
+              borderRadius:12, padding:"18px 20px", marginBottom:10 }}>
               <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
-                textTransform:"uppercase", color:"#888", marginBottom:14 }}>
+                textTransform:"uppercase", color:muted, marginBottom:14 }}>
                 Kategori Dağılımı
               </div>
               {CATS.slice(1).map(c => {
@@ -3606,14 +3609,15 @@ export default function Derthanem() {
                     <div style={{ display:"flex", justifyContent:"space-between",
                       marginBottom:5, alignItems:"center" }}>
                       <span style={{ fontSize:12, fontWeight:700, display:"flex",
-                        alignItems:"center", gap:6 }}>
+                        alignItems:"center", gap:6, color:fg }}>
                         <span>{CAT_ICONS[c]}</span>{c}
                       </span>
-                      <span style={{ fontSize:11, color:"#666" }}>{count} dert · %{pct}</span>
+                      <span style={{ fontSize:11, color:muted }}>{count} dert · %{pct}</span>
                     </div>
                     <div style={{ height:6, background:"#f0f0f0", border:"1px solid #eee" }}>
-                      <div style={{ height:"100%", background:"#111",
-                        width:`${pct}%`, transition:"width .6s ease" }}/>
+                      <div style={{ height:"100%",
+                        background:"linear-gradient(90deg,#2d2d2d,#111)",
+                        width:`${pct}%`, transition:"width .6s ease", borderRadius:2 }}/>
                     </div>
                   </div>
                 );
@@ -3622,32 +3626,32 @@ export default function Derthanem() {
 
             {/* En çok ortak olunan dert */}
             {stats.mostRelated && (
-              <div style={{ border:"2px solid #111", padding:"16px 20px",
-                background:"#fff", marginBottom:10 }}>
+              <div style={{ border:`1.5px solid ${bdr}`, borderRadius:12,
+                padding:"16px 20px", background:bg0, marginBottom:10 }}>
                 <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
-                  textTransform:"uppercase", color:"#888", marginBottom:10 }}>
+                  textTransform:"uppercase", color:muted, marginBottom:10 }}>
                   🤝 En Çok Ortak Olunan Dert
                 </div>
-                <div style={{ fontWeight:800, fontSize:14, marginBottom:4 }}>
+                <div style={{ fontWeight:800, fontSize:14, marginBottom:4, color:fg }}>
                   {stats.mostRelated.title}
                 </div>
-                <div style={{ fontSize:12, color:"#666" }}>
+                <div style={{ fontSize:12, color:muted }}>
                   {stats.maxRelate} kişi "Benimkine benziyor" dedi
                 </div>
               </div>
             )}
 
             {/* Toplam derman */}
-            <div style={{ border:"2px dashed #ddd", padding:"22px 20px",
-              textAlign:"center", color:"#666", marginTop:10 }}>
-              <div style={{ fontSize:32, fontWeight:900, color:"#111", letterSpacing:"-1px" }}>
+            <div style={{ border:`2px dashed ${bdr}`, borderRadius:12, padding:"22px 20px",
+              textAlign:"center", color:muted, marginTop:10 }}>
+              <div style={{ fontSize:40, fontWeight:900, color:fg, letterSpacing:"-1px" }}>
                 {stats.totalComs}
               </div>
               <div style={{ fontSize:11, fontWeight:700, letterSpacing:2,
-                textTransform:"uppercase", marginTop:4 }}>
-                toplam derman yazıldı
+                textTransform:"uppercase", marginTop:6, color:fg }}>
+                Toplam Derman Yazıldı
               </div>
-              <div style={{ fontSize:11, color:"#888", marginTop:6 }}>
+              <div style={{ fontSize:12, color:muted, marginTop:8 }}>
                 Her biri bir insanın yüküne omuz vermek için 💙
               </div>
             </div>
