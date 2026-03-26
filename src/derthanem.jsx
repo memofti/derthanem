@@ -2108,7 +2108,18 @@ export default function Derthanem() {
     return list;
   }, [derts, cat, search, sortBy, blockedUsers]);
 
-  const pagedFiltered = useMemo(() => filtered.slice(0, page * PAGE_SIZE), [filtered, page]);
+  const pagedFiltered = useMemo(() => {
+    const paged = filtered.slice(0, page * PAGE_SIZE);
+    // openId ile açılan dert sayfada yoksa ekle
+    if (openId && !paged.find(d=>d.id===openId)) {
+      const found = filtered.find(d=>d.id===openId);
+      if (found) return [...paged, found];
+      // filtered'da da yoksa derts'ten bak (kategori/arama filtresi dışında olabilir)
+      const inAll = derts.find(d=>d.id===openId);
+      if (inAll) return [...paged, inAll];
+    }
+    return paged;
+  }, [filtered, page, openId, derts]);
 
   /* ── Shared header ── */
   const bg0  = dark?"#111":"#fff";
