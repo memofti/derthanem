@@ -381,6 +381,12 @@ function AuthModal({ mode, onClose, onAuth, onVerifyEmail }) {
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({ email: f.email.trim(), password: f.password });
       if (error) { setErr("E-posta veya şifre hatalı."); setLoading(false); return; }
+      // Email doğrulaması yapılmamış kullanıcıyı engelle
+      if (!data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setErr("E-posta adresini doğrulamanız gerekiyor. Lütfen gelen kutunuzu kontrol edin.");
+        setLoading(false); return;
+      }
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single();
       onAuth({ id: data.user.id, name: profile?.name || f.email.split("@")[0],
         gender: profile?.gender || "female", email: f.email.trim(),
@@ -2300,7 +2306,7 @@ export default function Derthanem() {
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
       height:"100vh", fontFamily:"'Inter',system-ui,sans-serif", flexDirection:"column", gap:16,
-      background:"#fff" }}>
+      background:bg0 }}>
       <div style={{ fontSize:22, fontWeight:900, letterSpacing:"-1px" }}>Derthanem</div>
       <div style={{ fontSize:11, letterSpacing:3, textTransform:"uppercase", color:"#777",
         animation:"pulse 1.2s ease infinite" }}>yükleniyor...</div>
@@ -2326,7 +2332,7 @@ export default function Derthanem() {
         <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
         <div style={{ fontSize:22, fontWeight:900, marginBottom:12,
           fontFamily:"'Playfair Display',Georgia,serif" }}>Email Doğrulandı!</div>
-        <div style={{ fontSize:14, color:"#666", lineHeight:1.7, marginBottom:28 }}>
+        <div style={{ fontSize:14, color:muted, lineHeight:1.7, marginBottom:28 }}>
           Hesabın aktif. Şimdi giriş yapabilirsin.
         </div>
         <button onClick={()=>{ window.location.hash=""; setScreen("landing"); setAuth("login"); }}
@@ -2350,7 +2356,7 @@ export default function Derthanem() {
         <div style={{ fontSize:48, marginBottom:16 }}>📧</div>
         <div style={{ fontSize:22, fontWeight:900, marginBottom:12,
           fontFamily:"'Playfair Display',Georgia,serif" }}>Email'ini Doğrula</div>
-        <div style={{ fontSize:14, color:"#666", lineHeight:1.8, marginBottom:8 }}>
+        <div style={{ fontSize:14, color:muted, lineHeight:1.8, marginBottom:8 }}>
           <strong>{verifyEmail}</strong> adresine doğrulama maili gönderdik.
         </div>
         <div style={{ fontSize:13, color:"#888", lineHeight:1.7, marginBottom:28 }}>
@@ -2480,7 +2486,7 @@ export default function Derthanem() {
                         <div style={{ background:"#fff3f3", border:"1.5px solid #ffcccc",
                           borderRadius:8, padding:"10px 14px" }}>
                           <div style={{ fontSize:10, fontWeight:700, color:"#c0392b", marginBottom:4 }}>ŞİKAYET EDİLEN DERMAN</div>
-                          <div style={{ fontSize:13, color:"#333" }}>{relatedComment.text}</div>
+                          <div style={{ fontSize:13, color:fg }}>{relatedComment.text}</div>
                           <div style={{ fontSize:11, color:"#aaa", marginTop:4 }}>— {relatedComment.author}</div>
                         </div>
                       )}
@@ -2753,7 +2759,8 @@ export default function Derthanem() {
               </div>
               {showAvatarPicker && (
                 <div style={{ position:"absolute", top:68, left:0, zIndex:500,
-                  background:"#fff", border:"2px solid #111", boxShadow:"4px 4px 0 #333",
+                  background:bg0, border:`1.5px solid ${bdr}`, borderRadius:10,
+                  boxShadow:`0 8px 24px rgba(0,0,0,.15)`,
                   padding:10, display:"flex", flexWrap:"wrap", gap:6, width:200 }}>
                   {["😊","😎","🤗","🦁","🐺","🦊","🐻","🐼","🐨","🦋","🌻","⭐","🔥","💫","🎯","💙"].map(e=>(
                     <button key={e} onClick={()=>{ setUserAvatar(e); setShowAvatarPicker(false); }}
@@ -2763,7 +2770,7 @@ export default function Derthanem() {
                   ))}
                   <button onClick={()=>{ setUserAvatar(null); setShowAvatarPicker(false); }}
                     style={{ fontSize:10, background:"none", border:"1px solid #ddd",
-                      cursor:"pointer", padding:"3px 8px", color:"#666", width:"100%" }}>
+                      cursor:"pointer", padding:"3px 8px", color:muted, width:"100%" }}>
                     Varsayılan
                   </button>
                 </div>
@@ -3267,7 +3274,7 @@ export default function Derthanem() {
                   transition:"background .2s" }}>
                   <div style={{ position:"absolute", top:1,
                     left:postForm.isAnon?14:1, width:14, height:14,
-                    background:"#fff", borderRadius:"50%", border:"1px solid #bbb",
+                    background:bg0, borderRadius:"50%", border:`1px solid ${bdr}`,
                     transition:"left .2s" }}/>
                 </div>
                 <span style={{ fontSize:10, fontWeight:700, letterSpacing:1.5,
@@ -3278,7 +3285,7 @@ export default function Derthanem() {
             <select value={postForm.category}
               onChange={e=>setPostForm(p=>({...p,category:e.target.value}))}
               style={{ padding:"8px 12px", marginBottom:10, border:"2px solid #ddd",
-                fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, background:"#fff",
+                fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, background:bg0,
                 cursor:"pointer", fontWeight:700, letterSpacing:1, textTransform:"uppercase" }}>
               {CATS.slice(1).map(c=><option key={c}>{c}</option>)}
             </select>
@@ -3783,6 +3790,61 @@ export default function Derthanem() {
                 </div>
               ))}
             </div>
+
+            {/* 🔥 Trending Kategoriler */}
+            {(()=>{
+              const last7 = Date.now() - 7*24*60*60*1000;
+              const recentDerts = derts.filter(d => d.ts > last7);
+              const trendCounts = {};
+              recentDerts.forEach(d => {
+                if (d.category && d.category !== "Hepsi") {
+                  trendCounts[d.category] = (trendCounts[d.category]||0) + 1 + d.comments.length;
+                }
+              });
+              const trending = Object.entries(trendCounts).sort((a,b)=>b[1]-a[1]).slice(0,4);
+              if (trending.length === 0) return null;
+              const maxScore = trending[0][1];
+              return (
+                <div style={{ background:bg0, border:`1.5px solid ${bdr}`,
+                  borderRadius:12, padding:"18px 20px", marginBottom:10 }}>
+                  <div style={{ fontSize:9, fontWeight:700, letterSpacing:3,
+                    textTransform:"uppercase", color:muted, marginBottom:14 }}>
+                    🔥 Bu Hafta Trend
+                  </div>
+                  {trending.map(([cat, score], i) => (
+                    <div key={cat} onClick={()=>{ setTab("feed"); setCat(cat); setPage(1); }}
+                      style={{ display:"flex", alignItems:"center", gap:12,
+                        marginBottom:10, cursor:"pointer" }}>
+                      <div style={{ fontSize:18, width:28, textAlign:"center", flexShrink:0 }}>
+                        {CAT_ICONS[cat]}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:"flex", justifyContent:"space-between",
+                          marginBottom:4, alignItems:"center" }}>
+                          <span style={{ fontSize:13, fontWeight:700, color:fg }}>{cat}</span>
+                          <span style={{ fontSize:10, color:muted }}>{score} etkinlik</span>
+                        </div>
+                        <div style={{ height:6, background:dark?"#2a2a2a":"#f0f0f0",
+                          borderRadius:3, overflow:"hidden" }}>
+                          <div style={{ height:"100%", borderRadius:3,
+                            width:`${Math.round((score/maxScore)*100)}%`,
+                            background: i===0
+                              ? "linear-gradient(90deg,#f39c12,#e67e22)"
+                              : i===1
+                              ? "linear-gradient(90deg,#2d2d2d,#111)"
+                              : "linear-gradient(90deg,#555,#888)",
+                            transition:"width .6s cubic-bezier(.22,1,.36,1)"
+                          }}/>
+                        </div>
+                      </div>
+                      {i===0 && <span style={{ fontSize:16, flexShrink:0 }}>🥇</span>}
+                      {i===1 && <span style={{ fontSize:16, flexShrink:0 }}>🥈</span>}
+                      {i===2 && <span style={{ fontSize:16, flexShrink:0 }}>🥉</span>}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* Kapatılan dertler */}
             {stats.closed > 0 && (
