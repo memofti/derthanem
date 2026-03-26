@@ -3035,19 +3035,28 @@ export default function Derthanem() {
                   await supabase.from("notifications").update({is_read:true}).eq("id",n.id);
                   setNotifs(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x));
                 }
-                // Derte git — tüm filtreleri sıfırla ki dert görünsün
+                // Derte git — hash routing ile en güvenli yöntem
                 if (n.dert_id) {
                   setCat("Hepsi");
                   setSearch("");
                   setSortBy("new");
-                  setPage(999); // tüm dertleri göster
+                  setPage(999);
                   setTab("feed");
-                  setOpenId(n.dert_id);
                   setScreen("app");
-                  setTimeout(()=>{
+                  // Derts yüklendikten sonra openId set et ve scroll et
+                  const tryOpen = (attempts=0) => {
                     const el = document.getElementById("dert-"+n.dert_id);
-                    if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
-                  }, 600);
+                    if (el) {
+                      setOpenId(n.dert_id);
+                      el.scrollIntoView({behavior:"smooth", block:"center"});
+                    } else if (attempts < 15) {
+                      setTimeout(()=>tryOpen(attempts+1), 200);
+                    } else {
+                      // Son çare: openId set et, dert pagedFiltered'a girecek
+                      setOpenId(n.dert_id);
+                    }
+                  };
+                  setTimeout(()=>tryOpen(), 400);
                 }
               }} style={{
                 background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
