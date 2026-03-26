@@ -786,7 +786,7 @@ function Landing({ onDert, onDerman }) {
 function DertCard({ dert, i=0, user, openId, setOpenId,
                     cTexts, setCTexts, cWarns, setCWarns, cAnon, setCAnon,
                     onRate, onComment, onEdit, onEditDert, onRelate, onClose, onDelete,
-                    onDeleteComment, onBlock, onLike, onReport, onThank, onNeedAuth, onViewProfile, isNew=false, dark=false, userAvatar=null }) {
+                    onDeleteComment, onBlock, onLike, onReport, onNeedAuth, onViewProfile, isNew=false, dark=false, userAvatar=null }) {
   const owned    = user && user.id === dert.authorId;
   const isOpen   = openId === dert.id;
   const cardBg   = dark ? "#1e1e1e" : "#fff";
@@ -1039,11 +1039,15 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
           {/* Şikayet — dert sahibi olmayan */}
           {!owned && user && !dert.solved && !isClosed && (
             <button onClick={()=>handleReport(null)}
-              style={{ padding:"5px 11px", border:"1.5px solid #ddd", background:"#fff",
-                color: reported?"#c0392b":"#ddd", cursor:"pointer",
-                fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700,
-                transition:"color .2s" }}>
-              {reported ? "✓ Bildirildi" : "🚩"}
+              style={{ padding:"5px 11px",
+                border: reported ? "1.5px solid #c0392b" : `1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
+                background:"transparent",
+                color: reported ? "#c0392b" : "#e74c3c",
+                cursor:"pointer", fontFamily:"'Inter',system-ui,sans-serif",
+                fontSize:11, fontWeight:700, borderRadius:6,
+                transition:"all .2s", opacity: reported ? 1 : .7 }}
+              title="Uygunsuz içerik bildir">
+              {reported ? "✓ Bildirildi" : "⚑ Bildir"}
             </button>
           )}
 
@@ -1206,22 +1210,15 @@ function DertCard({ dert, i=0, user, openId, setOpenId,
                             👍 {(c.likedBy||[]).length>0 && (c.likedBy||[]).length}
                           </button>
                         )}
-                        {/* Teşekkür */}
-                        {owned && c.authorId !== user?.id && (
-                          <button onClick={()=>onThank&&onThank(dert.id, c.id, c.authorId)}
-                            style={{ padding:"3px 9px", border:"1.5px solid #d4edda",
-                              background:"transparent", color:"#27ae60",
-                              cursor:"pointer", fontSize:10, fontWeight:700 }}>
-                            🙏 Teşekkür
-                          </button>
-                        )}
                         {/* Şikayet */}
                         {user && !isMyComment && (
                           <button onClick={()=>onReport(dert.id, c.id)}
-                            style={{ padding:"3px 8px", border:"1.5px solid #e0e0e0",
-                              background:"transparent", color:"#ddd",
-                              cursor:"pointer", fontSize:10, transition:"color .2s" }}>
-                            🚩
+                            style={{ padding:"3px 10px", border:`1.5px solid ${dark?"#3a2020":"#ffd5d5"}`,
+                              background:"transparent", color:"#e74c3c",
+                              cursor:"pointer", fontSize:10, fontWeight:700,
+                              borderRadius:6, transition:"all .15s", opacity:.7 }}
+                            title="Uygunsuz içerik bildir">
+                            ⚑ Bildir
                           </button>
                         )}
                         {/* Puan */}
@@ -2914,7 +2911,7 @@ export default function Derthanem() {
               user={user} openId={openId} setOpenId={setOpenId}
               cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
               onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-              onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>)}
+              onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>)}
 
           {myComments.length>0 && <>
             <div style={{ fontSize:9, fontWeight:700, letterSpacing:3, textTransform:"uppercase",
@@ -3555,7 +3552,7 @@ export default function Derthanem() {
                   user={user} openId={openId} setOpenId={setOpenId}
                   cTexts={cTexts} setCTexts={setCTexts} cWarns={cWarns} setCWarns={setCWarns} cAnon={cAnon} setCAnon={setCAnon}
                   onRate={handleRate} onComment={handleComment} onEdit={handleEdit}
-                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onThank={handleThankYou} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>
+                  onEditDert={handleEditDert} onRelate={handleRelate} onClose={handleClose} onDelete={handleDelete} onDeleteComment={handleDeleteComment} onBlock={handleBlockUser} onLike={handleLike} onReport={handleReport} onNeedAuth={needAuth} onViewProfile={setViewProfile} dark={dark} userAvatar={userAvatar}/>
               </div>
             );
           })}
