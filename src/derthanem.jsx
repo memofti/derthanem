@@ -1768,6 +1768,8 @@ export default function Derthanem() {
     setNotifsLoading(false);
   };
 
+  const unreadNotifCount = notifs.filter(n=>!n.is_read).length;
+
   const markAllRead = async () => {
     await supabase.from("notifications")
       .update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
@@ -2268,7 +2270,7 @@ export default function Derthanem() {
             )}
 
             {/* Profil — sadece avatar + isim (isim mobilde gizli) */}
-            <div onClick={()=>{ setShowNotifs(false); setScreen(screen==="profile"?"app":"profile"); }}
+            <div onClick={()=>{ setShowNotifs(false); if (screen!=="profile") { loadNotifs(); } setScreen(screen==="profile"?"app":"profile"); }}
               style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer",
                 padding:"5px 8px", border:`2px solid ${bdr}`,
                 transition:"all .15s", position:"relative", color:fg, flexShrink:0 }}>
@@ -2870,7 +2872,7 @@ export default function Derthanem() {
           {[
             ["dertlerim",   "📋"],
             ["rozetler",    "🏅"],
-            ["bildirimler", "🔔"],
+            ["bildirimler", unreadNotifCount > 0 ? `🔔 ${unreadNotifCount}` : "🔔"],
             ["ayarlar",     "⚙️"],
           ].map(([id, icon]) => (
             <button key={id} onClick={()=>{
@@ -3033,19 +3035,19 @@ export default function Derthanem() {
                   await supabase.from("notifications").update({is_read:true}).eq("id",n.id);
                   setNotifs(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x));
                 }
-                // Derte git
+                // Derte git — tüm filtreleri sıfırla ki dert görünsün
                 if (n.dert_id) {
-                  setScreen("app");
-                  setTab("feed");
                   setCat("Hepsi");
-                  setPage(1);
+                  setSearch("");
+                  setSortBy("new");
+                  setPage(999); // tüm dertleri göster
+                  setTab("feed");
+                  setOpenId(n.dert_id);
+                  setScreen("app");
                   setTimeout(()=>{
-                    setOpenId(n.dert_id);
-                    setTimeout(()=>{
-                      const el = document.getElementById("dert-"+n.dert_id);
-                      if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
-                    }, 400);
-                  }, 100);
+                    const el = document.getElementById("dert-"+n.dert_id);
+                    if (el) el.scrollIntoView({behavior:"smooth", block:"center"});
+                  }, 600);
                 }
               }} style={{
                 background: n.is_read ? bg0 : (dark?"#1a2a1a":"#f0faf0"),
